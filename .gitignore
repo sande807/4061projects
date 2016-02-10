@@ -1,0 +1,3 @@
+#git should ignore the below files
+*.o
+*~
