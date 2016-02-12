@@ -24,6 +24,7 @@ int main(){
 		}
 		i= i+1;
 		pch = strtok (NULL, ": ");
+		printf("after strtok pch is %s\n", pch);
 	}
 	printf("target = %s\n", target);
 	printf("dependency = %s\n", dependencies[0]);

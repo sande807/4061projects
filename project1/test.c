@@ -16,6 +16,8 @@ int parse(char * lpszFileName)
 	char szLine[1024];
 	char * lpszLine;
 	FILE * fp = file_open(lpszFileName);
+	struct target targets[100];
+	int numtargets = 0;
 
 	if(fp == NULL)
 	{
@@ -41,6 +43,14 @@ int parse(char * lpszFileName)
 		//If lpszLine starts with '\t' it will be command else it will be target.
 		//It is possbile that target may not have a command as you can see from the example on project write-up. (target:all)
 		//You can use any data structure (array, linked list ...) as you want to build a graph
+		if(lpszLine[0] == "#" || lpszLine[0] == "\0"){
+			//do nothing, skip to next line
+		}else if(lpszLine[0] == "\t"){//this means this is a command
+			targets[numtargets].szCommand = lpszLine[1:];
+			numtargets += 1;
+		}else{
+			
+		}
 	}
 
 	//Close the makefile. 
