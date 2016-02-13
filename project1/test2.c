@@ -5,18 +5,27 @@ int main(){
 	char str[] = "make4061: util.a main.o";
 	char *butt;
 	char *target;
-	char *dependencies[10];
-	int num=0;
-	int i=0;
-	num = strlen(str);
+	char comment[]= "#this is a comment";
+	char *destination;
+	int num = 0;
+	int length;
+	int i = 0;
 	butt = str;
 	printf("butt = %s\n", butt);
-	for(i=0; i<10; i+=1){
-		printf("butt character %d = %s\n",i, &butt[i]);
-	}
-	num = strcmp(butt, "make4061: util.a main.o");
+	//for(i=0; i<10; i+=1){
+	//	printf("butt character %d = %s\n",i, &butt[i]);
+	//}
+	
+	num = strcmp(comment, "#");
 	printf("num = %d\n", num);
 	target = strstr(butt, ":");
 	printf("target = %s\n", target);
+	length = strlen(butt)-strlen(target);
+	printf("target length = %d\n", length);
+	printf("%*.*s\n",length,length,butt);
+	//strncpy(destination,butt,length);
+	//destination[length] = '\0';
+	//printf("result of strncpy = %s\n", destination);
 	return 0;
 }
+
