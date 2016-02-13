@@ -37,9 +37,10 @@ int parse(char * lpszFileName)
 		
 		printf("\nline = %s", lpszLine) ;
 		
-		/* IF   lpszLine = NULL 
-		 * 		lpszLine = all blanks
-		 * 		lpszLine = #
+		if(lpszLine == NULL || lpszLine == "#"){
+			printf("\ncomment or null line, do nothing"); 		
+		}	
+		/*
 		 * SKIP
 		 * 
 		 * IF	lpszLine = \t

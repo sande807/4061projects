@@ -7,10 +7,13 @@ struct target target1[100];
 int numtargets = 0;
 int i = 0;
 int x = 0;
+char *str;
+char make[] = "make4061";
 
 int main(){
 	//creating an example target from project description
-	strcpy(target1[numtargets].szTarget,"make4061");
+	str = make;
+	strcpy(target1[numtargets].szTarget,str);
 	strcpy(target1[numtargets].szDependencies[0],"util.a");
 	target1[numtargets].nDependencyCount=1;
 	strcpy(target1[numtargets].szDependencies[1],"main.o");

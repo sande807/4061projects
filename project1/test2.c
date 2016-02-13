@@ -3,31 +3,20 @@
 
 int main(){
 	char str[] = "make4061: util.a main.o";
-	char *pch;
+	char *butt;
 	char *target;
 	char *dependencies[10];
-	int num;
+	int num=0;
 	int i=0;
 	num = strlen(str);
-	printf("str length = %d\n", num);
-	printf ("splitting string \"%s\" into tokens:\n", str);
-	pch = strtok (str,": ");
-	//printf("i is %d\n", i);
-	while (pch != NULL){
-		//printf("i is %d", i);
-		if(i==0){
-			//printf("the target is:%s\n", pch );
-			target = pch;
-		}else{
-			//printf("dependency number %d is:%s\n", i-1,pch);
-			dependencies[i-1] = pch;
-		}
-		i= i+1;
-		pch = strtok (NULL, ": ");
-		printf("after strtok pch is %s\n", pch);
+	butt = str;
+	printf("butt = %s\n", butt);
+	for(i=0; i<10; i+=1){
+		printf("butt character %d = %s\n",i, &butt[i]);
 	}
+	num = strcmp(butt, "make4061: util.a main.o");
+	printf("num = %d\n", num);
+	target = strstr(butt, ":");
 	printf("target = %s\n", target);
-	printf("dependency = %s\n", dependencies[0]);
-	printf("dependency = %s\n", dependencies[1]);
 	return 0;
 }
