@@ -16,6 +16,9 @@ int parse(char * lpszFileName)
 	char szLine[1024];
 	char * lpszLine;
 	FILE * fp = file_open(lpszFileName);
+	
+	int i = 0 ;
+	//struct target stuff[] = new target ;
 
 	if(fp == NULL)
 	{
@@ -31,7 +34,24 @@ int parse(char * lpszFileName)
 
 		//Remove newline character at end if there is one
 		lpszLine = strtok(szLine, "\n"); 
-
+		
+		printf("\nline = %s", lpszLine) ;
+		
+		/* IF   lpszLine = NULL 
+		 * 		lpszLine = all blanks
+		 * 		lpszLine = #
+		 * SKIP
+		 * 
+		 * IF	lpszLine = \t
+		 * COMMAND
+		 * 
+		 * ELSE
+		 * 		Remove white-space
+		 * TARGET
+		 */
+	}
+	printf("\n") ;
+	
 		//You need to check below for parsing. 
 		//Skip if blank or comment.
 		//Remove leading whitespace.
@@ -41,7 +61,6 @@ int parse(char * lpszFileName)
 		//If lpszLine starts with '\t' it will be command else it will be target.
 		//It is possbile that target may not have a command as you can see from the example on project write-up. (target:all)
 		//You can use any data structure (array, linked list ...) as you want to build a graph
-	}
 
 	//Close the makefile. 
 	fclose(fp);
@@ -113,9 +132,11 @@ int main(int argc, char **argv)
 	//if target is not set, set it to default (first target from makefile)
 	if(argc == 1)
 	{
+		//set target makefile should build
 	}
 	else
 	{
+		//set target to be first target from makefile
 	}
 
 
