@@ -6,7 +6,7 @@ int main(){
 	char *butt;
 	char *target;
 	char comment[]= "#this is a comment";
-	char *destination;
+	char destination[64];
 	int num = 0;
 	int length;
 	int i = 0;
@@ -16,8 +16,11 @@ int main(){
 	//	printf("butt character %d = %s\n",i, &butt[i]);
 	//}
 	
-	num = strcmp(comment, "#");
-	printf("num = %d\n", num);
+	if (comment[0] =  '#'){
+	printf("this is a comment: %s\n", comment);
+	}else{
+	printf("not a comment\n");
+	}
 	target = strstr(butt, ":");
 	printf("target = %s\n", target);
 	length = strlen(butt)-strlen(target);

@@ -37,8 +37,12 @@ int parse(char * lpszFileName)
 		
 		printf("\nline = %s", lpszLine) ;
 		
-		if(lpszLine == NULL || lpszLine == "#"){
+		if(lpszLine == NULL || lpszLine[0] == '#'){
 			printf("\ncomment or null line, do nothing"); 		
+		}else if(lpszLine[0] == '\t'){
+			printf("\nthis line is a command");
+		}else{
+			printf("\nthis line is not a command, null, or comment, must be a target/dependencies");
 		}	
 		/*
 		 * SKIP
