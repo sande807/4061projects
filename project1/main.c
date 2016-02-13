@@ -37,11 +37,11 @@ int parse(char * lpszFileName)
 		
 		printf("\nline = %s", lpszLine) ;
 		
-		if(lpszLine == NULL || lpszLine[0] == '#'){
+		if(lpszLine == NULL || lpszLine[0] == '#'){//if the line is null or the first character is a pound then it is to be ignored
 			printf("\ncomment or null line, do nothing"); 		
-		}else if(lpszLine[0] == '\t'){
+		}else if(lpszLine[0] == '\t'){//if the first line starts with a tab it is a comment
 			printf("\nthis line is a command");
-		}else{
+		}else{//otherwise it must be a target
 			printf("\nthis line is not a command, null, or comment, must be a target/dependencies");
 		}	
 		/*
