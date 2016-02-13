@@ -43,6 +43,20 @@ int parse(char * lpszFileName)
 			printf("\nthis line is a command");
 		}else{//otherwise it must be a target
 			printf("\nthis line is not a command, null, or comment, must be a target/dependencies");
+			printf("\nwill attempt to get next line");
+			while(file_getline(szLine, fp)!=NULL){//get the next line
+				printf("\nnext line is: %s", szLine);//print out that line, which should be a command
+				lpszLine = szLine;
+				if(lpszLine[0] == '\t'){//check to see if this command begins with a tab
+					printf("this command starts with a tab so its good");
+					break;
+				}else if(lpszLine[0] == '\n' || lpszLine[0] == '#'){
+					printf("tried to get command and found newline or comment, going to next line");
+				}else{
+					printf("this command does not begin with a tab, throw an error");
+					break;
+				}
+			}
 		}	
 		/*
 		 * SKIP
