@@ -9,7 +9,7 @@
 
 #include "util.h"
 
-//This function will parse makefile input from user or default makeFile. 
+//This function will parse makefile input from user or default makeFile 
 int parse(char * lpszFileName)
 {
 	int nLine=0;
