@@ -9,8 +9,8 @@
 
 #include "util.h"
 
-//This function will parse makefile input from user or default makeFile. 
-int parse(char * lpszFileName, struct target targets[20])
+//This function will parse makefile input from user or default makeFile 
+int parse(char * lpszFileName)
 {
 	int nLine=0;
 	char szLine[1024];
