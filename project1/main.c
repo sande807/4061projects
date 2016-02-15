@@ -10,17 +10,12 @@
 #include "util.h"
 
 //This function will parse makefile input from user or default makeFile 
-int parse(char * lpszFileName)
+int parse(char * lpszFileName, target_t *stuff)
 {
 	int nLine=0;
 	char szLine[1024];
 	char * lpszLine;
 	FILE * fp = file_open(lpszFileName);
-	
-	//declare stuff of type target_t and allocate memory for it
-	target_t *stuff ;
-	stuff = (target_t *) malloc(sizeof(target_t)) ;
-	(*stuff).nDependencyCount = 0 ;
 	
 	//counters for dependencies/commands 
 	int dCount = 0 ;
@@ -107,7 +102,12 @@ void show_error_message(char * lpszFileName)
 }
 
 int main(int argc, char **argv) 
-{
+{	
+	//declare stuff of type target_t and allocate memory for it
+	target_t *stuff ;
+	stuff = (target_t *) malloc(sizeof(target_t)) ;
+	(*stuff).nDependencyCount = 0 ;
+	
 	// Declarations for getopt
 	extern int optind;
 	extern char * optarg;
@@ -168,7 +168,7 @@ int main(int argc, char **argv)
 
 
 	/* Parse graph file or die */
-	if((parse(szMakefile)) == -1) 
+	if((parse(szMakefile, stuff)) == -1) 
 	{
 		return EXIT_FAILURE;
 	}
