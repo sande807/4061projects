@@ -170,6 +170,25 @@ int main(int argc, char **argv)
 	{
 		return EXIT_FAILURE;
 	}
+	else {/*
+		int i = 0 ;
+		while (i < (nDependencyCount)) {
+			pid = fork() ;
+			if (pid = 0) {
+				i = 0 ;
+				//targets[dependencies]
+			}
+			i++ ;
+		}
+		if (nDependencyCount == 0) {
+			execvp(szCommand[0], ...) ;
+			exit(nStatus) ;
+		}
+		else {
+			//wait pid = status
+			//execvp(command, ...)
+		}*/
+	}
 
 	//after parsing the file, you'll want to check all dependencies (whether they are available targets or files)
 	//then execute all of the targets that were specified on the command line, along with their dependencies, etc.
