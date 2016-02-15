@@ -19,7 +19,7 @@ int parse(char * lpszFileName, struct target targets[20])
 	
 	//counters for dependencies/commands 
 	int dCount = 0 ;
-	int cCount = 0 ;
+	int tCount = 0 ;//for number of targets
 	int i = 0;
 
 	if(fp == NULL)
@@ -60,7 +60,7 @@ int parse(char * lpszFileName, struct target targets[20])
 		}
 		else{
 			//target line
-			
+			tCount++ ;
 			//get target
 			lpszLine = strtok(szLine, ":") ;
 			if (lpszLine == NULL) {
@@ -76,20 +76,20 @@ int parse(char * lpszFileName, struct target targets[20])
 			//get dependencies
 			while ((lpszLine = strtok(NULL, " ")) != NULL){
 				strcpy(targets[i].szDependencies[dCount], lpszLine) ;
-				//printf("dependency:%s\n", targets[i].szDependencies[dCount]) ;
-				dCount++ ;
+				//printf("dependency:%s\n", targets[i].szDependencies[dCount]);
+				dCount++;
 				targets[i].nDependencyCount++ ;
-			}			
+			}
+			dCount = 0;			
 		}
 	}
-	printf("\n") ;
 
 	//Close the makefile. 
 	fclose(fp);
 	
 	//free(stuff) ;
 
-	return 0;
+	return tCount;
 }
 
 void show_error_message(char * lpszFileName)
@@ -171,40 +171,76 @@ int main(int argc, char **argv)
 
 
 	/* Parse graph file or die */
-	if((parse(szMakefile, targets)) == -1) 
+	int num=0;//this is for the number of targets
+	num = parse(szMakefile, targets);
+	printf("number of targets = %d\n", num); 
+	if( num == -1) 
 	{
 		return EXIT_FAILURE;
 	}
 	else {
 		int i;
 		int x;
-		for(i=0; i<2; i+=1){
+		/*for(i=0; i<2; i+=1){
 			printf("target = %s\n", targets[i].szTarget);
 			printf("command = %s\n", targets[i].szCommand);
 			printf("dependency count = %d\n", targets[i].nDependencyCount);
 			for(x=0; x<targets[i].nDependencyCount; x++){
 				printf("dependency = %s\n", targets[i].szDependencies[x]);
 			}
-		}
+		}*/
 
-/*
-		int i = 0 ;
-		while (i < (nDependencyCount)) {
-			pid = fork() ;
-			if (pid = 0) {
-				i = 0 ;
-				//targets[dependencies]
+ 		pid_t childpid;
+ 		pid_t waitreturn;
+		int status;
+		char *dependency;
+		i = 0 ;
+		x = 0;
+		while (i < (targets[x].nDependencyCount)) {
+			printf("target is: %s\n", targets[x].szTarget);
+			printf("creating new process for #%d dependency\n", i+1);
+			dependency = targets[x].szDependencies[i];
+			printf("Dependency = %s\n", dependency);
+			childpid = fork();
+			//printf("after fork\n");
+			if  (childpid == -1){
+				perror("fork");
+				exit(0);
+			}else if (childpid == 0) {
+				printf("I am a child with id %ld\n", (long)getpid());
+				printf("Dependency is %s search for matching target\n", dependency);
+				for(x=0; x<num; x++){
+					if(targets[x].szTarget == dependency){
+						printf("found matching target\n");
+						i=0;
+						break;
+					}else{
+						printf("not a matching target\n");
+					}
+				}
+				printf("no matching targets found\n");
+				exit(3);
+			}else{
+				waitreturn = wait(&status);
+				i++;
+				if(WIFEXITED(status)){
+					printf("child exits with status %d\n",WEXITSTATUS(status));
+				}
 			}
-			i++ ;
 		}
-		if (nDependencyCount == 0) {
+/*		if (nDependencyCount == 0) {
 			execvp(szCommand[0], ...) ;
 			exit(nStatus) ;
 		}
 		else {
 			//wait pid = status
 			//execvp(command, ...)
-		}*/
+		}
+		* 
+		* if(targets[x].nDependencyCount == 0){
+					printf("execute command: %s\n", targets[x].szCommand);
+				}
+*/
 	}
 
 	//after parsing the file, you'll want to check all dependencies (whether they are available targets or files)
