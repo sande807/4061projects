@@ -89,6 +89,8 @@ int parse(char * lpszFileName)
 
 	//Close the makefile. 
 	fclose(fp);
+	
+	free(stuff) ;
 
 	return 0;
 }
