@@ -10,15 +10,20 @@
 #include "util.h"
 
 //This function will parse makefile input from user or default makeFile. 
-int parse(char * lpszFileName)
+int parse(char * lpszFileName, struct target targets[20])
 {
 	int nLine=0;
 	char szLine[1024];
 	char * lpszLine;
+	char * pointer;
+	char * pointer2;
 	FILE * fp = file_open(lpszFileName);
 	
 	int i = 0 ;
-	//struct target stuff[] = new target ;
+	int x = 0;
+	int y = 0;
+	int length;
+	int total;
 
 	if(fp == NULL)
 	{
@@ -35,41 +40,63 @@ int parse(char * lpszFileName)
 		//Remove newline character at end if there is one
 		lpszLine = strtok(szLine, "\n"); 
 		
-		printf("\nline = %s", lpszLine) ;
+		//printf("\nline = %s", lpszLine) ;
 		
 		if(lpszLine == NULL || lpszLine[0] == '#'){//if the line is null or the first character is a pound then it is to be ignored
-			printf("\ncomment or null line, do nothing"); 		
-		}else if(lpszLine[0] == '\t'){//if the first line starts with a tab it is a comment
-			printf("\nthis line is a command");
+			//printf("\ncomment or null line, do nothing"); 		
 		}else{//otherwise it must be a target
-			printf("\nthis line is not a command, null, or comment, must be a target/dependencies");
-			printf("\nwill attempt to get next line");
+			//printf("\nthis line is not a command, null, or comment, must be a target/dependencies");
+			pointer = strstr(lpszLine, ":");
+			length = strlen(lpszLine) - strlen(pointer);
+			for(x = 0; x<length; x+=1){
+				targets[i].szTarget[x] =  lpszLine[x];
+			}
+			x=0;
+			pointer2 = pointer; 
+			printf("about to begin dependency loop\n");
+			while(pointer2 != NULL){
+				printf("top of dependency loop\n");
+				if(pointer == NULL || pointer2 == NULL){
+					break;
+				}
+				pointer = strstr(&pointer[1], " ");
+				pointer2 = strstr(&pointer[1], " ");
+				if(pointer2 == NULL){
+					targets[i].nDependencyCount = x+1;
+					length = strlen(pointer);
+				}else{
+					length = strlen(pointer) - strlen(pointer2);
+				}
+				printf("about to begin writing pointer to dependency\n");
+				for(y=1; y<length; y+=1){
+					targets[i].szDependencies[x][y-1] = pointer[y];
+					printf("depend = %s\n",targets[i].szDependencies[x]);
+				}
+				targets[i].szDependencies[x][y-1] = '\0';
+				printf("y=%d\n",y);
+				printf("bottom of dependency loop\n");
+				x+=1;
+			}
+			printf("done with dependencies\n");
+			printf("will attempt to get next line\n");
 			while(file_getline(szLine, fp)!=NULL){//get the next line
-				printf("\nnext line is: %s", szLine);//print out that line, which should be a command
+				//printf("\nnext line is: %s", szLine);//print out that line, which should be a command
 				lpszLine = szLine;
 				if(lpszLine[0] == '\t'){//check to see if this command begins with a tab
-					printf("this command starts with a tab so its good");
+					//printf("this command starts with a tab so its good");
+					strcpy(targets[i].szCommand,&lpszLine[1]);//put the line in the command place.
+					i+=1;//get next target
 					break;
 				}else if(lpszLine[0] == '\n' || lpszLine[0] == '#'){
-					printf("tried to get command and found newline or comment, going to next line");
+					//printf("tried to get command and found newline or comment, going to next line");
 				}else{
 					printf("this command does not begin with a tab, throw an error");
 					break;
 				}
 			}
-		}	
-		/*
-		 * SKIP
-		 * 
-		 * IF	lpszLine = \t
-		 * COMMAND
-		 * 
-		 * ELSE
-		 * 		Remove white-space
-		 * TARGET
-		 */
+		}
 	}
-	printf("\n") ;
+	//printf("\n") ;
 	
 		//You need to check below for parsing. 
 		//Skip if blank or comment.
@@ -110,6 +137,7 @@ int main(int argc, char **argv)
 	char szMakefile[64] = "Makefile";
 	char szTarget[64];
 	char szLog[64];
+	struct target targets[20];
 
 	while((ch = getopt(argc, argv, format)) != -1) 
 	{
@@ -160,11 +188,16 @@ int main(int argc, char **argv)
 
 
 	/* Parse graph file or die */
-	if((parse(szMakefile)) == -1) 
+	if((parse(szMakefile,targets)) == -1) 
 	{
 		return EXIT_FAILURE;
 	}
-
+	
+	printf("The first target in targets[] is: %s\n",targets[0].szTarget);
+	printf("The first command in targets[] is: %s\n",targets[0].szCommand);
+	printf("The first dependency in targets[] is: %s\n", targets[0].szDependencies[0]);
+	printf("The second target in targets[] is: %s\n",targets[1].szTarget);
+	printf("The second command in targets[] is: %s\n",targets[1].szCommand);
 	//after parsing the file, you'll want to check all dependencies (whether they are available targets or files)
 	//then execute all of the targets that were specified on the command line, along with their dependencies, etc.
 	return EXIT_SUCCESS;

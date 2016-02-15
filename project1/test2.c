@@ -5,8 +5,9 @@ int main(){
 	char str[] = "make4061: util.a main.o";
 	char *butt;
 	char *target;
+	char *target2;
 	char comment[]= "#this is a comment";
-	char destination[64];
+	char destination[8];
 	int num = 0;
 	int length;
 	int i = 0;
@@ -25,10 +26,30 @@ int main(){
 	printf("target = %s\n", target);
 	length = strlen(butt)-strlen(target);
 	printf("target length = %d\n", length);
-	printf("%*.*s\n",length,length,butt);
-	//strncpy(destination,butt,length);
-	//destination[length] = '\0';
-	//printf("result of strncpy = %s\n", destination);
+	for(i=0;i<length;i+=1){
+		destination[i] = butt[i];	
+	}
+	printf("destination = %s\n",destination);
+	printf("target =%s\n",target);
+	for(i=0;i<20;i+=1){
+		target = strstr(&target[1], " ");
+		target2 = strstr(&target[1], " ");
+		if(target2 == NULL){
+			num = i+1;
+			i = 2000;
+			length = strlen(target);
+		}else{
+			length = strlen(target) - strlen(target2);
+		}
+		printf("target =%s\n", target);
+		printf("target2 =%s\n", target2);
+		for(i=1; i<length; i+=1){
+			destination[i-1] = target[i];
+		}
+		printf("dependency length = %d\n",length);
+		printf("destination = %s\n",destination);
+	}
+	printf("number of dependencies = %d\n", num);
 	return 0;
 }
 
