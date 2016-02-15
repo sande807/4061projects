@@ -10,7 +10,7 @@
 #include "util.h"
 
 //This function will parse makefile input from user or default makeFile 
-int parse(char * lpszFileName, target_t *stuff)
+int parse(char * lpszFileName, struct target targets[20])
 {
 	int nLine=0;
 	char szLine[1024];
@@ -20,6 +20,7 @@ int parse(char * lpszFileName, target_t *stuff)
 	//counters for dependencies/commands 
 	int dCount = 0 ;
 	int cCount = 0 ;
+	int i = 0;
 
 	if(fp == NULL)
 	{
@@ -53,8 +54,9 @@ int parse(char * lpszFileName, target_t *stuff)
 		else if(lpszLine[0] == '\t'){
 			//command line
 			lpszLine = strtok(szLine, "\t") ;
-			strcpy((*stuff).szCommand,lpszLine) ;
-			printf("\ncommand line :%s\n", (*stuff).szCommand) ;
+			strcpy(targets[i].szCommand,lpszLine) ;
+			i+=1;
+			//printf("\ncommand line :%s\n", (*stuff).szCommand) ;
 		}
 		else{
 			//target line
@@ -68,15 +70,15 @@ int parse(char * lpszFileName, target_t *stuff)
 				 */
 				perror ("invalid line...") ;
 			}
-			strcpy((*stuff).szTarget,lpszLine) ;
-			printf("\ntarget :%s\n", (*stuff).szTarget) ;
+			strcpy(targets[i].szTarget,lpszLine) ;
+			//printf("\ntarget :%s\n", (*stuff).szTarget) ;
 			
 			//get dependencies
 			while ((lpszLine = strtok(NULL, " ")) != NULL){
+				strcpy(targets[i].szDependencies[dCount], lpszLine) ;
+				//printf("dependency:%s\n", targets[i].szDependencies[dCount]) ;
 				dCount++ ;
-				strcpy((*stuff).szDependencies[dCount], lpszLine) ;
-				printf("\ndependency:%s\n", (*stuff).szDependencies[dCount]) ;
-				(*stuff).nDependencyCount++ ;
+				targets[i].nDependencyCount++ ;
 			}			
 		}
 	}
@@ -85,7 +87,7 @@ int parse(char * lpszFileName, target_t *stuff)
 	//Close the makefile. 
 	fclose(fp);
 	
-	free(stuff) ;
+	//free(stuff) ;
 
 	return 0;
 }
@@ -104,9 +106,10 @@ void show_error_message(char * lpszFileName)
 int main(int argc, char **argv) 
 {	
 	//declare stuff of type target_t and allocate memory for it
-	target_t *stuff ;
-	stuff = (target_t *) malloc(sizeof(target_t)) ;
-	(*stuff).nDependencyCount = 0 ;
+	//target_t *stuff ;
+	//stuff = (target_t *) malloc(sizeof(target_t)) ;
+	//(*stuff).nDependencyCount = 0 ;
+	struct target targets[20];
 	
 	// Declarations for getopt
 	extern int optind;
@@ -168,11 +171,23 @@ int main(int argc, char **argv)
 
 
 	/* Parse graph file or die */
-	if((parse(szMakefile, stuff)) == -1) 
+	if((parse(szMakefile, targets)) == -1) 
 	{
 		return EXIT_FAILURE;
 	}
-	else {/*
+	else {
+		int i;
+		int x;
+		for(i=0; i<2; i+=1){
+			printf("target = %s\n", targets[i].szTarget);
+			printf("command = %s\n", targets[i].szCommand);
+			printf("dependency count = %d\n", targets[i].nDependencyCount);
+			for(x=0; x<targets[i].nDependencyCount; x++){
+				printf("dependency = %s\n", targets[i].szDependencies[x]);
+			}
+		}
+
+/*
 		int i = 0 ;
 		while (i < (nDependencyCount)) {
 			pid = fork() ;
