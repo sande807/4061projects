@@ -17,8 +17,14 @@ int parse(char * lpszFileName)
 	char * lpszLine;
 	FILE * fp = file_open(lpszFileName);
 	
-	int i = 0 ;
-	//struct target stuff[] = new target ;
+	//declare stuff of type target_t and allocate memory for it
+	target_t *stuff ;
+	stuff = (target_t *) malloc(sizeof(target_t)) ;
+	(*stuff).nDependencyCount = 0 ;
+	
+	//counters for dependencies/commands 
+	int dCount = 0 ;
+	int cCount = 0 ;
 
 	if(fp == NULL)
 	{
@@ -34,43 +40,7 @@ int parse(char * lpszFileName)
 
 		//Remove newline character at end if there is one
 		lpszLine = strtok(szLine, "\n"); 
-		
-		printf("\nline = %s", lpszLine) ;
-		
-		if(lpszLine == NULL || lpszLine[0] == '#'){//if the line is null or the first character is a pound then it is to be ignored
-			printf("\ncomment or null line, do nothing"); 		
-		}else if(lpszLine[0] == '\t'){//if the first line starts with a tab it is a comment
-			printf("\nthis line is a command");
-		}else{//otherwise it must be a target
-			printf("\nthis line is not a command, null, or comment, must be a target/dependencies");
-			printf("\nwill attempt to get next line");
-			while(file_getline(szLine, fp)!=NULL){//get the next line
-				printf("\nnext line is: %s", szLine);//print out that line, which should be a command
-				lpszLine = szLine;
-				if(lpszLine[0] == '\t'){//check to see if this command begins with a tab
-					printf("this command starts with a tab so its good");
-					break;
-				}else if(lpszLine[0] == '\n' || lpszLine[0] == '#'){
-					printf("tried to get command and found newline or comment, going to next line");
-				}else{
-					printf("this command does not begin with a tab, throw an error");
-					break;
-				}
-			}
-		}	
-		/*
-		 * SKIP
-		 * 
-		 * IF	lpszLine = \t
-		 * COMMAND
-		 * 
-		 * ELSE
-		 * 		Remove white-space
-		 * TARGET
-		 */
-	}
-	printf("\n") ;
-	
+			
 		//You need to check below for parsing. 
 		//Skip if blank or comment.
 		//Remove leading whitespace.
@@ -80,6 +50,42 @@ int parse(char * lpszFileName)
 		//If lpszLine starts with '\t' it will be command else it will be target.
 		//It is possbile that target may not have a command as you can see from the example on project write-up. (target:all)
 		//You can use any data structure (array, linked list ...) as you want to build a graph
+		
+		if(lpszLine == NULL || lpszLine[0] == '#'){
+			//either no line or comment
+			//do nothing
+		}
+		else if(lpszLine[0] == '\t'){
+			//command line
+			lpszLine = strtok(szLine, "\t") ;
+			strcpy((*stuff).szCommand,lpszLine) ;
+			printf("\ncommand line :%s\n", (*stuff).szCommand) ;
+		}
+		else{
+			//target line
+			
+			//get target
+			lpszLine = strtok(szLine, ":") ;
+			if (lpszLine == NULL) {
+				/* this line is either not a valid target line, command
+				 * line, or violates syntax in some form...
+				 * either way, terminate with an error
+				 */
+				perror ("invalid line...") ;
+			}
+			strcpy((*stuff).szTarget,lpszLine) ;
+			printf("\ntarget :%s\n", (*stuff).szTarget) ;
+			
+			//get dependencies
+			while ((lpszLine = strtok(NULL, " ")) != NULL){
+				dCount++ ;
+				strcpy((*stuff).szDependencies[dCount], lpszLine) ;
+				printf("\ndependency:%s\n", (*stuff).szDependencies[dCount]) ;
+				(*stuff).nDependencyCount++ ;
+			}			
+		}
+	}
+	printf("\n") ;
 
 	//Close the makefile. 
 	fclose(fp);
