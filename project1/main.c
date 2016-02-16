@@ -118,7 +118,7 @@ int main(int argc, char **argv)
 	char * format = "f:hnBm:";
 	
 	// Default makefile name will be Makefile
-	char szMakefile[64] = "Makefile";
+	char szMakefile[64] = "tc4";
 	char szTarget[64];
 	char szLog[64];
 
@@ -181,7 +181,7 @@ int main(int argc, char **argv)
 	else {
 		int i;
 		int x;
-		/*for(i=0; i<2; i+=1){
+		/*for(i=0; i<num; i+=1){
 			printf("target = %s\n", targets[i].szTarget);
 			printf("command = %s\n", targets[i].szCommand);
 			printf("dependency count = %d\n", targets[i].nDependencyCount);
@@ -196,8 +196,13 @@ int main(int argc, char **argv)
 		char *dependency;
 		i = 0 ;
 		x = 0;
-		while (i < (targets[x].nDependencyCount)) {
-			printf("target is: %s\n", targets[x].szTarget);
+		while (i <= (targets[x].nDependencyCount)) {
+			printf("target %s, i=%d\n", targets[x].szTarget, i);
+			if(i==targets[x].nDependencyCount){
+				printf("all dependencies done. command %s execute\n", targets[x].szCommand);
+				//command
+				exit(1);
+			}
 			printf("creating new process for #%d dependency\n", i+1);
 			dependency = targets[x].szDependencies[i];
 			printf("Dependency = %s\n", dependency);
@@ -210,16 +215,18 @@ int main(int argc, char **argv)
 				printf("I am a child with id %ld\n", (long)getpid());
 				printf("Dependency is %s search for matching target\n", dependency);
 				for(x=0; x<num; x++){
-					if(targets[x].szTarget == dependency){
-						printf("found matching target\n");
+					if(strcmp(targets[x].szTarget,dependency)==0){
+						printf("found matching target:%s\n",targets[x].szTarget);
 						i=0;
 						break;
 					}else{
 						printf("not a matching target\n");
 					}
 				}
-				printf("no matching targets found\n");
-				exit(3);
+				if(x==num){
+					printf("no matching targets found\n");
+					exit(3);
+				}
 			}else{
 				waitreturn = wait(&status);
 				i++;
