@@ -10,8 +10,7 @@
 #include "util.h"
 
 //This function will parse makefile input from user or default makeFile 
-int parse(char * lpszFileName, struct target targets[20])
-{
+int parse(char * lpszFileName, struct target targets[20]) {
 	int nLine=0;
 	char szLine[1024];
 	char * lpszLine;
@@ -90,8 +89,7 @@ int parse(char * lpszFileName, struct target targets[20])
 	return tCount;
 }
 
-void show_error_message(char * lpszFileName)
-{
+void show_error_message(char * lpszFileName) {
 	fprintf(stderr, "Usage: %s [options] [target] : only single target is allowed.\n", lpszFileName);
 	fprintf(stderr, "-f FILE\t\tRead FILE as a maumfile.\n");
 	fprintf(stderr, "-h\t\tPrint this message and exit.\n");
@@ -115,10 +113,8 @@ int main(int argc, char **argv) {
 	char szTarget[64];
 	char szLog[64];	
 
-	while((ch = getopt(argc, argv, format)) != -1) 
-	{
-		switch(ch) 
-		{
+	while((ch = getopt(argc, argv, format)) != -1) {
+		switch(ch) {
 			case 'f':
 				strcpy(szMakefile, strdup(optarg));
 				break;
@@ -144,8 +140,7 @@ int main(int argc, char **argv) {
 	// try printing out what's in argv right here, then just running 
 	// with various command-line arguments.
 
-	if(argc > 1)
-	{
+	if(argc > 1) {
 		show_error_message(argv[0]);
 		return EXIT_FAILURE;
 	}
@@ -164,21 +159,56 @@ int main(int argc, char **argv) {
 		 * this will be what is left in *argv
 		 *
 		 * WE NEED TO FORK AND EXEC THE SPECIFIC TARGET IN THIS IF STATEMENT
+		 * I THINK
 		 */
-		 printf("the specific target we are supposed to build is %s\n",
+		 printf("---the specific target we are supposed to build is %s---\n\n",
 				 *argv) ;
 	}
 	else {
 		//set target to be first target from makefile
 		//no target specified in terminal, work line-by-line in makefile
-		printf("no target specified, build makefile step-by-step\n") ;
+		printf("----no target specified, build makefile step-by-step----\n\n") ;
 		
 		//WE NEED TO FORK AND EXEC THE MAKEFILE IN THIS ELSE STATEMENT
-		int numTargets ;
+		//I THINK
+		/*int numTargets ;
 		numTargets = parse(szMakefile, targets) ;
 		printf("number of targets = %d\n", numTargets) ;
 		
 		int i, x ;		
+		for(i = 0; i < numTargets; i++) {
+			printf("target = %s\n", targets[i].szTarget) ;
+			printf("command = %s\n", targets[i].szCommand) ;
+			printf("dependency count = %d\n", targets[i].nDependencyCount) ;
+			for(x = 0; x < targets[i].nDependencyCount; x++) {
+				printf("dependency = %s\n", targets[i].szDependencies[x]) ;
+			}
+		}
+		
+		pid_t childPid ;
+		char * dependency ;
+		i = 0 ;
+		x = 0 ;
+		
+		while (i <= (targets[x].nDependencyCount)) {
+			printf("creating new process for dependecy #%d\n", i + 1) ;
+			dependency = targets[x].szDependencies[i] ;
+			i++ ;
+		}*/
+	}
+
+
+	/* Parse graph file or die */
+	int numTargets ;//this is for the number of targets
+	numTargets = parse(szMakefile, targets);
+	//printf("number of targets = %d\n", numTargets); 
+	if(numTargets == -1) 
+	{
+		return EXIT_FAILURE;
+	}
+	else {
+		int i;
+		int x;
 		for(i=0; i<numTargets; i+=1){
 			printf("target = %s\n", targets[i].szTarget);
 			printf("command = %s\n", targets[i].szCommand);
@@ -186,29 +216,8 @@ int main(int argc, char **argv) {
 			for(x=0; x<targets[i].nDependencyCount; x++){
 				printf("dependency = %s\n", targets[i].szDependencies[x]);
 			}
-		}		
-	}
-
-
-	/* Parse graph file or die */
-	//int num=0;//this is for the number of targets
-	//num = parse(szMakefile, targets);
-	//printf("number of targets = %d\n", num); 
-	if(parse(szMakefile, targets) == -1) 
-	{
-		return EXIT_FAILURE;
-	}
-	else {/*
-		int i;
-		int x;
-		for(i=0; i<num; i+=1){
-			printf("target = %s\n", targets[i].szTarget);
-			printf("command = %s\n", targets[i].szCommand);
-			printf("dependency count = %d\n", targets[i].nDependencyCount);
-			for(x=0; x<targets[i].nDependencyCount; x++){
-				printf("dependency = %s\n", targets[i].szDependencies[x]);
-			}
 		}
+		printf("\n\n") ;
 
  		pid_t childpid;
  		pid_t waitreturn;
@@ -220,60 +229,52 @@ int main(int argc, char **argv) {
 		x = 0;
 		char **myargv ;
 		while (i <= (targets[x].nDependencyCount)) {
-			//printf("target %s, i=%d\n", targets[x].szTarget, i);
+			printf("target %s, i=%d\n", targets[x].szTarget, i);
 			if(i==targets[x].nDependencyCount){
-				//printf("all dependencies done. command %s execute\n", targets[x].szCommand);
+				printf("all dependencies done. command %s execute\n", targets[x].szCommand);
 				numtokens = makeargv(targets[x].szCommand, delimiter, &myargv);
-				printf("PRINTING START") ;
-				printf("execvp = %d\n", execvp(myargv[x], &myargv[x])) ;
-				printf("PRINTING STOP") ;
+				//printf("execvp = %d\n", execvp(myargv[x], &myargv[x])) ;
 				//printf("numtokens = %d\n", numtokens);
 				
 				//numtokens = makeargv(argv[x+1], delimiter, &myargv) ;
-				//execvp(myargv[x], &myargv[x]) ;
-				//printf("execvp = %d\n", execvp(myargv[x], &myargv[x])) ;
-				//printf("job done\n") ;
-				//printf("command = %s\n", targets[x]->szCommand[0]) ;
-				//printf("command = %s\n", targets[x].szCommand) ;
-				//printf("myargv = %s\n", *myargv) ;
-				execl("/bin/%d", *myargv, targets[x].szCommand) ;
+				execvp(myargv[x], &myargv[x]) ;
 				
-				//perror("child failed to execute") ;
+				perror("child failed to execute") ;
 
 				exit(1);
 			}
-			//printf("creating new process for #%d dependency\n", i+1);
+			printf("creating new process for #%d dependency\n", i+1);
 			dependency = targets[x].szDependencies[i];
-			//printf("Dependency = %s\n", dependency);
+			printf("Dependency = %s\n", dependency);
 			childpid = fork();
-			//printf("after fork\n");
+			printf("after fork\n");
 			if  (childpid == -1){
 				perror("failed to fork");
 				exit(0);
 			}else if (childpid == 0) {
-				//printf("I am a child with id %ld\n", (long)getpid());
-				//printf("Dependency is %s search for matching target\n", dependency);
-				for(x=0; x<num; x++){
+				printf("I am a child with id %ld\n", (long)getpid());
+				printf("Dependency is %s search for matching target\n", dependency);
+				for(x=0; x<numTargets; x++){
 					if(strcmp(targets[x].szTarget,dependency)==0){
-						//printf("found matching target:%s\n",targets[x].szTarget);
+						printf("found matching target:%s\n",targets[x].szTarget);
 						i=0;
 						break;
 					}else{
-						//printf("not a matching target\n");
+						printf("not a matching target\n");
 					}
 				}
-				if(x==num){
-					//printf("no matching targets found\n");
+				if(x==numTargets){
+					printf("no matching targets found\n");
 					exit(3);
 				}
 			}else{
 				waitreturn = wait(&status);
 				i++;
 				if(WIFEXITED(status)){
-					//printf("child exits with status %d\n",WEXITSTATUS(status));
+					printf("child exits with status %d\n",WEXITSTATUS(status));
 				}
 			}
-		}*/
+		}
 /*		if (nDependencyCount == 0) {
 			execvp(szCommand[0], ...) ;
 			exit(nStatus) ;
