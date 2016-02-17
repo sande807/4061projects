@@ -106,6 +106,7 @@ int main(int argc, char **argv) {
 	extern int optind;
 	extern char * optarg;
 	int ch;
+	int x;
 	char * format = "f:hnBm:";
 	
 	// Default makefile name will be Makefile
@@ -161,14 +162,13 @@ int main(int argc, char **argv) {
 		 * WE NEED TO FORK AND EXEC THE SPECIFIC TARGET IN THIS IF STATEMENT
 		 * I THINK
 		 */
-		 printf("---the specific target we are supposed to build is %s---\n\n",
-				 *argv) ;
+		 printf("---the specific target we are supposed to build is %s---\n\n",	 *argv);
 	}
 	else {
 		//set target to be first target from makefile
 		//no target specified in terminal, work line-by-line in makefile
 		printf("----no target specified, build makefile step-by-step----\n\n") ;
-		
+		x = 0;
 		//WE NEED TO FORK AND EXEC THE MAKEFILE IN THIS ELSE STATEMENT
 		//I THINK
 		/*int numTargets ;
@@ -208,13 +208,13 @@ int main(int argc, char **argv) {
 	}
 	else {
 		int i;
-		int x;
+		int y;
 		for(i=0; i<numTargets; i+=1){
 			printf("target = %s\n", targets[i].szTarget);
 			printf("command = %s\n", targets[i].szCommand);
 			printf("dependency count = %d\n", targets[i].nDependencyCount);
-			for(x=0; x<targets[i].nDependencyCount; x++){
-				printf("dependency = %s\n", targets[i].szDependencies[x]);
+			for(y=0; y<targets[i].nDependencyCount; y++){
+				printf("dependency = %s\n", targets[i].szDependencies[y]);
 			}
 		}
 		printf("\n\n") ;
@@ -226,33 +226,31 @@ int main(int argc, char **argv) {
 		char *dependency;
 		char *delimiter = " ";
 		i = 0 ;
-		x = 0;
 		char **myargv ;
 		while (i <= (targets[x].nDependencyCount)) {
 			printf("target %s, i=%d\n", targets[x].szTarget, i);
 			if(i==targets[x].nDependencyCount){
-				printf("all dependencies done. command %s execute\n", targets[x].szCommand);
+				printf("all dependencies done. command \"%s\" execute\n", targets[x].szCommand);
 				numtokens = makeargv(targets[x].szCommand, delimiter, &myargv);
 				//printf("execvp = %d\n", execvp(myargv[x], &myargv[x])) ;
 				//printf("numtokens = %d\n", numtokens);
 				
 				//numtokens = makeargv(argv[x+1], delimiter, &myargv) ;
 				execvp(myargv[x], &myargv[x]) ;
-				
+				printf("after execution\n");
+				myargv = NULL;
 				perror("child failed to execute") ;
-
 				exit(1);
 			}
 			printf("creating new process for #%d dependency\n", i+1);
 			dependency = targets[x].szDependencies[i];
 			printf("Dependency = %s\n", dependency);
 			childpid = fork();
-			printf("after fork\n");
 			if  (childpid == -1){
 				perror("failed to fork");
 				exit(0);
 			}else if (childpid == 0) {
-				printf("I am a child with id %ld\n", (long)getpid());
+				//printf("I am a child with id %ld\n", (long)getpid());
 				printf("Dependency is %s search for matching target\n", dependency);
 				for(x=0; x<numTargets; x++){
 					if(strcmp(targets[x].szTarget,dependency)==0){
