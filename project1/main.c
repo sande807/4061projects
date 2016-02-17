@@ -9,6 +9,8 @@
 
 #include "util.h"
 
+#define CREATE_FLAGS (O_WRONLY | O_CREAT | O_APPEND)
+#define CREATE_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
 //This function will parse makefile input from user or default makeFile 
 int parse(char * lpszFileName, struct target targets[20]) {
 	int nLine=0;
@@ -107,12 +109,17 @@ int main(int argc, char **argv) {
 	extern char * optarg;
 	int ch;
 	int x;
+	int nflag = 0;
+	int mflag = 0;
+	int bflag = 0;
 	char * format = "f:hnBm:";
+	int fd;
+	
 	
 	// Default makefile name will be Makefile
 	char szMakefile[64] = "tc4";
 	char szTarget[64];
-	char szLog[64];	
+	char szLog[64];
 
 	while((ch = getopt(argc, argv, format)) != -1) {
 		switch(ch) {
@@ -120,11 +127,15 @@ int main(int argc, char **argv) {
 				strcpy(szMakefile, strdup(optarg));
 				break;
 			case 'n':
+				printf("nflag detected\n");
+				nflag = 1;
 				break;
 			case 'B':
+				bflag = 1;
 				break;
 			case 'm':
 				strcpy(szLog, strdup(optarg));
+				mflag = 1;
 				break;
 			case 'h':
 			default:
@@ -154,47 +165,13 @@ int main(int argc, char **argv) {
 		 * and then stop. we need to search our target object to find 
 		 * where the specific target is located, handle dependencies
 		 * appropriately, and then build the target.
-		 * 
-		 * ONLY ONE TARGET ALLOWED
-		 * 
-		 * this will be what is left in *argv
-		 *
-		 * WE NEED TO FORK AND EXEC THE SPECIFIC TARGET IN THIS IF STATEMENT
-		 * I THINK
-		 */
+	*/
 		 printf("---the specific target we are supposed to build is %s---\n\n",	 *argv);
 	}
 	else {
 		//set target to be first target from makefile
-		//no target specified in terminal, work line-by-line in makefile
-		printf("----no target specified, build makefile step-by-step----\n\n") ;
+		//printf("----no target specified, build makefile step-by-step----\n\n") ;
 		x = 0;
-		//WE NEED TO FORK AND EXEC THE MAKEFILE IN THIS ELSE STATEMENT
-		//I THINK
-		/*int numTargets ;
-		numTargets = parse(szMakefile, targets) ;
-		printf("number of targets = %d\n", numTargets) ;
-		
-		int i, x ;		
-		for(i = 0; i < numTargets; i++) {
-			printf("target = %s\n", targets[i].szTarget) ;
-			printf("command = %s\n", targets[i].szCommand) ;
-			printf("dependency count = %d\n", targets[i].nDependencyCount) ;
-			for(x = 0; x < targets[i].nDependencyCount; x++) {
-				printf("dependency = %s\n", targets[i].szDependencies[x]) ;
-			}
-		}
-		
-		pid_t childPid ;
-		char * dependency ;
-		i = 0 ;
-		x = 0 ;
-		
-		while (i <= (targets[x].nDependencyCount)) {
-			printf("creating new process for dependecy #%d\n", i + 1) ;
-			dependency = targets[x].szDependencies[i] ;
-			i++ ;
-		}*/
 	}
 
 
@@ -209,7 +186,7 @@ int main(int argc, char **argv) {
 	else {
 		int i;
 		int y;
-		for(i=0; i<numTargets; i+=1){
+		/*for(i=0; i<numTargets; i+=1){
 			printf("target = %s\n", targets[i].szTarget);
 			printf("command = %s\n", targets[i].szCommand);
 			printf("dependency count = %d\n", targets[i].nDependencyCount);
@@ -218,7 +195,10 @@ int main(int argc, char **argv) {
 			}
 		}
 		printf("\n\n") ;
-
+		if(mflag){
+			fd = open(szlog, CREATE_FLAGS, CREATE_MODE);
+			dup2(fd,STDOUT_FILENO);
+		}*/
  		pid_t childpid;
  		pid_t waitreturn;
 		int status;
@@ -228,67 +208,58 @@ int main(int argc, char **argv) {
 		i = 0 ;
 		char **myargv ;
 		while (i <= (targets[x].nDependencyCount)) {
-			printf("target %s, i=%d\n", targets[x].szTarget, i);
+			//printf("target %s, i=%d\n", targets[x].szTarget, i);
 			if(i==targets[x].nDependencyCount){
 				printf("all dependencies done. command \"%s\" execute\n", targets[x].szCommand);
-				numtokens = makeargv(targets[x].szCommand, delimiter, &myargv);
-				//printf("execvp = %d\n", execvp(myargv[x], &myargv[x])) ;
-				//printf("numtokens = %d\n", numtokens);
-				
-				//numtokens = makeargv(argv[x+1], delimiter, &myargv) ;
-				execvp(myargv[x], &myargv[x]) ;
-				printf("after execution\n");
-				myargv = NULL;
-				perror("child failed to execute") ;
-				exit(1);
+				printf("file %s modification time: %d\n", targets[x].szTarget, get_file_modification_time(targets[x].szTarget));
+				if(nflag){
+					//this flag means they just want it printed, not executed
+					printf("command: %s\n", targets[x].szCommand);
+					exit(1);
+				}else if(mflag){
+					//write to log
+					write(STDOUT_FILENO, targets[x].szCommand, 2);
+					exit(1);
+				}else{
+					numtokens = makeargv(targets[x].szCommand, delimiter, &myargv);
+					if (execvp(myargv[0], &myargv[0]) == -1) {
+						perror("child failed to execute");
+						exit(2);
+					}
+				}
 			}
-			printf("creating new process for #%d dependency\n", i+1);
+			//printf("creating new process for #%d dependency\n", i+1);
 			dependency = targets[x].szDependencies[i];
-			printf("Dependency = %s\n", dependency);
+			//printf("Dependency = %s\n", dependency);
 			childpid = fork();
 			if  (childpid == -1){
 				perror("failed to fork");
 				exit(0);
 			}else if (childpid == 0) {
 				//printf("I am a child with id %ld\n", (long)getpid());
-				printf("Dependency is %s search for matching target\n", dependency);
+				//printf("Dependency is %s search for matching target\n", dependency);
 				for(x=0; x<numTargets; x++){
 					if(strcmp(targets[x].szTarget,dependency)==0){
-						printf("found matching target:%s\n",targets[x].szTarget);
+					//	printf("found matching target:%s\n",targets[x].szTarget);
 						i=0;
 						break;
 					}else{
-						printf("not a matching target\n");
+					//	printf("not a matching target\n");
 					}
 				}
 				if(x==numTargets){
-					printf("no matching targets found\n");
+				//	printf("no matching targets found\n");
 					exit(3);
 				}
 			}else{
 				waitreturn = wait(&status);
 				i++;
 				if(WIFEXITED(status)){
-					printf("child exits with status %d\n",WEXITSTATUS(status));
+				//	printf("child exits with status %d\n",WEXITSTATUS(status));
 				}
 			}
 		}
-/*		if (nDependencyCount == 0) {
-			execvp(szCommand[0], ...) ;
-			exit(nStatus) ;
-		}
-		else {
-			//wait pid = status
-			//execvp(command, ...)
-		}
-		* 
-		* if(targets[x].nDependencyCount == 0){
-					printf("execute command: %s\n", targets[x].szCommand);
-				}
-*/
-	}
 
-	//after parsing the file, you'll want to check all dependencies (whether they are available targets or files)
-	//then execute all of the targets that were specified on the command line, along with their dependencies, etc.
+	}
 	return EXIT_SUCCESS;
 }
