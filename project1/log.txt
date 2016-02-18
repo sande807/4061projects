@@ -1,0 +1,3 @@
+all dependencies done. command "gcc -o make4061 main.c util.c" execute
+command: gcc -o make4061 main.c util.c
+command: rm make4061 makeargv.o
