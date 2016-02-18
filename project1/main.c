@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <sys/wait.h> 
 #include <unistd.h>
+#include <time.h>
 
 #include "util.h"
 
@@ -114,13 +115,14 @@ int main(int argc, char **argv) {
 	int bflag = 0;
 	char * format = "f:hnBm:";
 	int fd;
-	int time;
 	
 	
 	// Default makefile name will be Makefile
 	char szMakefile[64] = "Makefile";
 	char szTarget[64];
 	char szLog[64];
+	
+	char * specTarget ;
 
 	while((ch = getopt(argc, argv, format)) != -1) {
 		switch(ch) {
@@ -136,7 +138,6 @@ int main(int argc, char **argv) {
 				break;
 			case 'm':
 				strcpy(szLog, strdup(optarg));
-				//printf("log = %s\n", szLog);
 				fopen(szLog,"ab+");
 				mflag = 1;
 				break;
@@ -169,7 +170,7 @@ int main(int argc, char **argv) {
 		 * where the specific target is located, handle dependencies
 		 * appropriately, and then build the target.
 	*/
-		 printf("---the specific target we are supposed to build is %s---\n\n",	 *argv);
+		 specTarget = *argv ;
 	}
 	else {
 		//set target to be first target from makefile
@@ -219,10 +220,10 @@ int main(int argc, char **argv) {
 		while (i <= (targets[x].nDependencyCount)) {
 			//printf("target %s, i=%d\n", targets[x].szTarget, i);
 			if(i==targets[x].nDependencyCount){
-				printf("all dependencies done. command \"%s\" execute\n", targets[x].szCommand);
+				//printf("all dependencies done. command \"%s\" execute\n", targets[x].szCommand);
 				if(nflag || mflag){
 					//this flag means they just want it printed, not executed
-					printf("command: %s\n", targets[x].szCommand);
+					//printf("command: %s\n", targets[x].szCommand);
 					if(x==0){
 						for(x=0; x<numTargets; x+=1){
 							if(strcmp(targets[x].szTarget, "clean")==0){
@@ -230,42 +231,55 @@ int main(int argc, char **argv) {
 							}
 						}
 						if(x!=numTargets){
-							printf("command: %s\n", targets[x].szCommand);
+							//printf("command: %s\n", targets[x].szCommand);
 						}
 					}
 					exit(1);
-				}else{
+				}
+				else{
 					if(x==0){//first target, all others should be done, check for clean
 						childpid = fork();
 						if(childpid == -1){
 							perror("failed to fork");
 							exit(0);
-						}else if(childpid == 0){
-							printf("search for clean\n");
+						}
+						else if(childpid == 0){
+							//printf("search for clean\n");
 							for(x=0; x<numTargets; x+=1){
 								if(strcmp(targets[x].szTarget, "clean")==0){
-									printf("target=%s\n", targets[x].szTarget);
+									//printf("target=%s\n", targets[x].szTarget);
 									break;
 								}
 							}
 							if(x==numTargets){
-								printf("did not find clean\n");
+								//printf("did not find clean\n");
 								exit(3);
 							}
-							printf("found clean at %d\n", x);
+							//printf("found clean at %d\n", x);
 							numtokens = makeargv(targets[x].szCommand, delimiter, &myargv);
 							if (execvp(myargv[0], &myargv[0]) == -1) {
 								perror("child failed to execute");
 								exit(2);
 							}
-						}else{
+						}
+						else {
 							waitreturn = wait(&status);
 						}
-					}else{//not first target, just compile regularly
-						if(!bflag){//if the b flag is not set we want to check timestamp
-							//time = time(NULL);
-							printf("time: %d\n",time);
-							if(time == get_file_modification_time(targets[x].szTarget)){
+						if(bflag != 0){
+							//if the b flag is not set we want to check timestamp
+							time_t fileTime = time(NULL) ;
+							if(fileTime == get_file_modification_time(targets[x].szTarget)){
+								//if the time is the same it's been compiled recently
+								//therefore do not compile
+								exit(0);
+							}
+						}
+					}
+					else{//not first target, just compile regularly
+						if(bflag != 0){
+							//if the b flag is not set we want to check timestamp
+							time_t fileTime = time(NULL) ;
+							if(fileTime == get_file_modification_time(targets[x].szTarget)){
 								//if the time is the same it's been compiled recently
 								//therefore do not compile
 								exit(0);
