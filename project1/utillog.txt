@@ -1,6 +1,0 @@
-all dependencies done. command "gcc -c parse.c" execute
-command: gcc -c parse.c
-all dependencies done. command "gcc -c cal.c" execute
-command: gcc -c cal.c
-all dependencies done. command "ar rcs util.a parse.o cal.o" execute
-command: ar rcs util.a parse.o cal.o
