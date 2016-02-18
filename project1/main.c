@@ -9,9 +9,6 @@
 #include <time.h>
 
 #include "util.h"
-
-#define CREATE_FLAGS (O_WRONLY | O_CREAT | O_APPEND)
-#define CREATE_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
 //This function will parse makefile input from user or default makeFile 
 int parse(char * lpszFileName, struct target targets[20]) {
 	int nLine=0;
@@ -113,8 +110,10 @@ int main(int argc, char **argv) {
 	int nflag = 0;
 	int mflag = 0;
 	int bflag = 0;
+	int targetflag = 0;
 	char * format = "f:hnBm:";
 	int fd;
+	char * specifictarget;
 	
 	
 	// Default makefile name will be Makefile
@@ -170,7 +169,8 @@ int main(int argc, char **argv) {
 		 * where the specific target is located, handle dependencies
 		 * appropriately, and then build the target.
 	*/
-		 specTarget = *argv ;
+		 specifictarget = *argv;
+		 targetflag = 1;
 	}
 	else {
 		//set target to be first target from makefile
@@ -190,7 +190,7 @@ int main(int argc, char **argv) {
 	else {
 		int i;
 		int y;
-		/*for(i=0; i<numTargets; i+=1){
+		/*for(i=0; i<numTargets; i+=1){//prints out all targets
 			printf("target = %s\n", targets[i].szTarget);
 			printf("command = %s\n", targets[i].szCommand);
 			printf("dependency count = %d\n", targets[i].nDependencyCount);
@@ -198,13 +198,25 @@ int main(int argc, char **argv) {
 				printf("dependency = %s\n", targets[i].szDependencies[y]);
 			}
 		}*/
-		if(mflag){
-			fd = open(szLog, O_WRONLY);
-			if(fd == -1){
+		if(targetflag){//if there is a specific target to be built
+			for(x=0; x<numTargets; x+=1){//search through all the targets for the right one
+				if(strcmp(targets[x].szTarget, specifictarget)==0){//if the target matches the right target
+					break;//break, therefore x will be set to the specific target
+				}
+			}
+			if(x==numTargets){
+				printf("failed to find target: %s\n",specifictarget);
+				perror("failed to find target");
+				exit(3);
+			}
+		}
+		if(mflag){//if the m flag is set, then it should have already opened the file or created it
+			fd = open(szLog, O_WRONLY);//get the file descriptor
+			if(fd == -1){//if it failed to open quit
 				perror("Failed to open");
 				exit(0);
 			}
-			if(dup2(fd,STDOUT_FILENO)==-1){
+			if(dup2(fd,STDOUT_FILENO)==-1){//then change the standard out to our file using dup2
 				perror("Failed to redirect stdout.");
 				exit(0);
 			}
