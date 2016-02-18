@@ -114,10 +114,11 @@ int main(int argc, char **argv) {
 	int bflag = 0;
 	char * format = "f:hnBm:";
 	int fd;
+	int time;
 	
 	
 	// Default makefile name will be Makefile
-	char szMakefile[64] = "tc4";
+	char szMakefile[64] = "Makefile";
 	char szTarget[64];
 	char szLog[64];
 
@@ -127,7 +128,7 @@ int main(int argc, char **argv) {
 				strcpy(szMakefile, strdup(optarg));
 				break;
 			case 'n':
-				printf("nflag detected\n");
+				//printf("nflag detected\n");
 				nflag = 1;
 				break;
 			case 'B':
@@ -135,6 +136,8 @@ int main(int argc, char **argv) {
 				break;
 			case 'm':
 				strcpy(szLog, strdup(optarg));
+				//printf("log = %s\n", szLog);
+				fopen(szLog,"ab+");
 				mflag = 1;
 				break;
 			case 'h':
@@ -193,12 +196,18 @@ int main(int argc, char **argv) {
 			for(y=0; y<targets[i].nDependencyCount; y++){
 				printf("dependency = %s\n", targets[i].szDependencies[y]);
 			}
-		}
-		printf("\n\n") ;
-		if(mflag){
-			fd = open(szlog, CREATE_FLAGS, CREATE_MODE);
-			dup2(fd,STDOUT_FILENO);
 		}*/
+		if(mflag){
+			fd = open(szLog, O_WRONLY);
+			if(fd == -1){
+				perror("Failed to open");
+				exit(0);
+			}
+			if(dup2(fd,STDOUT_FILENO)==-1){
+				perror("Failed to redirect stdout.");
+				exit(0);
+			}
+		}
  		pid_t childpid;
  		pid_t waitreturn;
 		int status;
@@ -211,20 +220,62 @@ int main(int argc, char **argv) {
 			//printf("target %s, i=%d\n", targets[x].szTarget, i);
 			if(i==targets[x].nDependencyCount){
 				printf("all dependencies done. command \"%s\" execute\n", targets[x].szCommand);
-				printf("file %s modification time: %d\n", targets[x].szTarget, get_file_modification_time(targets[x].szTarget));
-				if(nflag){
+				if(nflag || mflag){
 					//this flag means they just want it printed, not executed
 					printf("command: %s\n", targets[x].szCommand);
-					exit(1);
-				}else if(mflag){
-					//write to log
-					write(STDOUT_FILENO, targets[x].szCommand, 2);
+					if(x==0){
+						for(x=0; x<numTargets; x+=1){
+							if(strcmp(targets[x].szTarget, "clean")==0){
+								break;
+							}
+						}
+						if(x!=numTargets){
+							printf("command: %s\n", targets[x].szCommand);
+						}
+					}
 					exit(1);
 				}else{
-					numtokens = makeargv(targets[x].szCommand, delimiter, &myargv);
-					if (execvp(myargv[0], &myargv[0]) == -1) {
-						perror("child failed to execute");
-						exit(2);
+					if(x==0){//first target, all others should be done, check for clean
+						childpid = fork();
+						if(childpid == -1){
+							perror("failed to fork");
+							exit(0);
+						}else if(childpid == 0){
+							printf("search for clean\n");
+							for(x=0; x<numTargets; x+=1){
+								if(strcmp(targets[x].szTarget, "clean")==0){
+									printf("target=%s\n", targets[x].szTarget);
+									break;
+								}
+							}
+							if(x==numTargets){
+								printf("did not find clean\n");
+								exit(3);
+							}
+							printf("found clean at %d\n", x);
+							numtokens = makeargv(targets[x].szCommand, delimiter, &myargv);
+							if (execvp(myargv[0], &myargv[0]) == -1) {
+								perror("child failed to execute");
+								exit(2);
+							}
+						}else{
+							waitreturn = wait(&status);
+						}
+					}else{//not first target, just compile regularly
+						if(!bflag){//if the b flag is not set we want to check timestamp
+							//time = time(NULL);
+							printf("time: %d\n",time);
+							if(time == get_file_modification_time(targets[x].szTarget)){
+								//if the time is the same it's been compiled recently
+								//therefore do not compile
+								exit(0);
+							}
+						}
+						numtokens = makeargv(targets[x].szCommand, delimiter, &myargv);
+						if (execvp(myargv[0], &myargv[0]) == -1) {
+							perror("child failed to execute");
+							exit(2);
+						}
 					}
 				}
 			}
