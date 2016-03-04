@@ -8,4 +8,4 @@ testStruct
 words
 bookTest
 *.zip
-mock_app_example
+mock_app_example/
