@@ -54,7 +54,6 @@ int parse(char * lpszFileName, struct target targets[20]) {
 			//command line
 			lpszLine = strtok(szLine, "\t") ;
 			strcpy(targets[i].szCommand,lpszLine) ;
-			//printf("command line:%s\n", targets[i].szCommand) ;
 			i+=1 ;
 		}
 		else{
@@ -70,12 +69,10 @@ int parse(char * lpszFileName, struct target targets[20]) {
 				perror ("invalid line...") ;
 			}
 			strcpy(targets[i].szTarget,lpszLine) ;
-			//printf("\ntarget:%s\n", targets[i].szTarget) ;
 			
 			//get dependencies
 			while ((lpszLine = strtok(NULL, " ")) != NULL){
 				strcpy(targets[i].szDependencies[dCount], lpszLine) ;
-				//printf("dependency:%s\n", targets[i].szDependencies[dCount]);
 				dCount++;
 				targets[i].nDependencyCount++ ;
 			}
@@ -129,7 +126,6 @@ int main(int argc, char **argv) {
 				strcpy(szMakefile, strdup(optarg));
 				break;
 			case 'n':
-				//printf("nflag detected\n");
 				nflag = 1;
 				break;
 			case 'B':
@@ -168,20 +164,21 @@ int main(int argc, char **argv) {
 		 * and then stop. we need to search our target object to find 
 		 * where the specific target is located, handle dependencies
 		 * appropriately, and then build the target.
-	*/
+		 */
 		 specifictarget = *argv;
 		 targetflag = 1;
 	}
 	else {
 		//set target to be first target from makefile
-		//printf("----no target specified, build makefile step-by-step----\n\n") ;
 		x = 0;
 	}
 
 
 	/* Parse graph file or die */
+	
 	int numTargets ;//this is for the number of targets
 	numTargets = parse(szMakefile, targets);
+	
 	//printf("number of targets = %d\n", numTargets); 
 	if(numTargets == -1) 
 	{
@@ -190,33 +187,33 @@ int main(int argc, char **argv) {
 	else {
 		int i;
 		int y;
-		/*for(i=0; i<numTargets; i+=1){//prints out all targets
-			printf("target = %s\n", targets[i].szTarget);
-			printf("command = %s\n", targets[i].szCommand);
-			printf("dependency count = %d\n", targets[i].nDependencyCount);
-			for(y=0; y<targets[i].nDependencyCount; y++){
-				printf("dependency = %s\n", targets[i].szDependencies[y]);
-			}
-		}*/
-		if(targetflag){//if there is a specific target to be built
-			for(x=0; x<numTargets; x+=1){//search through all the targets for the right one
-				if(strcmp(targets[x].szTarget, specifictarget)==0){//if the target matches the right target
-					break;//break, therefore x will be set to the specific target
+		if (targetflag) {
+			//if there is a specific target to be built
+			for (x = 0; x < numTargets; x++) {
+				//search through all the targets for the right one
+				if(strcmp(targets[x].szTarget, specifictarget) == 0) {
+					//if the target matches the right target break, so x
+					//matches the specific target
+					break;
 				}
 			}
-			if(x==numTargets){
-				printf("failed to find target: %s\n",specifictarget);
+			if (x == numTargets) {
 				perror("failed to find target");
 				exit(3);
 			}
 		}
-		if(mflag){//if the m flag is set, then it should have already opened the file or created it
-			fd = open(szLog, O_WRONLY);//get the file descriptor
-			if(fd == -1){//if it failed to open quit
+		if (mflag) {
+			//if the m flag is set, then it should have already opened the file or created it
+			
+			//get the file descriptor
+			fd = open(szLog, O_WRONLY);
+			if (fd == -1) {//if it failed to open quit
 				perror("Failed to open");
 				exit(0);
 			}
-			if(dup2(fd,STDOUT_FILENO)==-1){//then change the standard out to our file using dup2
+			
+			if (dup2(fd,STDOUT_FILENO) == -1) {
+				//then change the standard out to our file using dup2
 				perror("Failed to redirect stdout.");
 				exit(0);
 			}
@@ -229,16 +226,15 @@ int main(int argc, char **argv) {
 		char *delimiter = " ";
 		i = 0 ;
 		char **myargv ;
-		while (i <= (targets[x].nDependencyCount)) {
-			//printf("target %s, i=%d\n", targets[x].szTarget, i);
-			if(i==targets[x].nDependencyCount){
-				//printf("all dependencies done. command \"%s\" execute\n", targets[x].szCommand);
-				if(nflag || mflag){
+		while(i <= (targets[x].nDependencyCount)) {
+			if(i == targets[x].nDependencyCount) {
+				if(nflag || mflag) {
 					//this flag means they just want it printed, not executed
-					//printf("command: %s\n", targets[x].szCommand);
-					if(x==0){
-						for(x=0; x<numTargets; x+=1){
-							if(strcmp(targets[x].szTarget, "clean")==0){
+					printf("command: %s\n", targets[x].szCommand);
+					if(x == 0) {
+						for(x = 0; x<numTargets; x++) {
+							if(strcmp(targets[x].szTarget, "clean") == 0) {
+								//exit if target is clean
 								break;
 							}
 						}
@@ -249,25 +245,23 @@ int main(int argc, char **argv) {
 					exit(1);
 				}
 				else{
-					if(x==0){//first target, all others should be done, check for clean
+					if(x == 0) {
+						//first target, all others should be done, check for clean
 						childpid = fork();
 						if(childpid == -1){
 							perror("failed to fork");
 							exit(0);
 						}
 						else if(childpid == 0){
-							//printf("search for clean\n");
 							for(x=0; x<numTargets; x+=1){
 								if(strcmp(targets[x].szTarget, "clean")==0){
-									//printf("target=%s\n", targets[x].szTarget);
 									break;
 								}
 							}
-							if(x==numTargets){
-								//printf("did not find clean\n");
+							if(x == numTargets){
+								//exit if we cannot find clean
 								exit(3);
 							}
-							//printf("found clean at %d\n", x);
 							numtokens = makeargv(targets[x].szCommand, delimiter, &myargv);
 							if (execvp(myargv[0], &myargv[0]) == -1) {
 								perror("child failed to execute");
@@ -280,6 +274,7 @@ int main(int argc, char **argv) {
 						if(bflag != 0){
 							//if the b flag is not set we want to check timestamp
 							time_t fileTime = time(NULL) ;
+							
 							if(fileTime == get_file_modification_time(targets[x].szTarget)){
 								//if the time is the same it's been compiled recently
 								//therefore do not compile
@@ -287,10 +282,12 @@ int main(int argc, char **argv) {
 							}
 						}
 					}
-					else{//not first target, just compile regularly
+					else{
+						//not first target, just compile regularly
 						if(bflag != 0){
 							//if the b flag is not set we want to check timestamp
 							time_t fileTime = time(NULL) ;
+							
 							if(fileTime == get_file_modification_time(targets[x].szTarget)){
 								//if the time is the same it's been compiled recently
 								//therefore do not compile
@@ -305,35 +302,28 @@ int main(int argc, char **argv) {
 					}
 				}
 			}
-			//printf("creating new process for #%d dependency\n", i+1);
 			dependency = targets[x].szDependencies[i];
-			//printf("Dependency = %s\n", dependency);
 			childpid = fork();
-			if  (childpid == -1){
+			if(childpid == -1) {
 				perror("failed to fork");
 				exit(0);
-			}else if (childpid == 0) {
-				//printf("I am a child with id %ld\n", (long)getpid());
-				//printf("Dependency is %s search for matching target\n", dependency);
+			}
+			else if (childpid == 0) {
 				for(x=0; x<numTargets; x++){
 					if(strcmp(targets[x].szTarget,dependency)==0){
-					//	printf("found matching target:%s\n",targets[x].szTarget);
-						i=0;
+						//matching target has been found, break
+						i = 0 ;
 						break;
-					}else{
-					//	printf("not a matching target\n");
 					}
 				}
-				if(x==numTargets){
-				//	printf("no matching targets found\n");
+				if(x == numTargets) {
+					//no matching targets found
 					exit(3);
 				}
-			}else{
+			}
+			else {
 				waitreturn = wait(&status);
 				i++;
-				if(WIFEXITED(status)){
-				//	printf("child exits with status %d\n",WEXITSTATUS(status));
-				}
 			}
 		}
 
