@@ -243,7 +243,7 @@ int main(int argc, char **argv) {
 							}
 						}
 						if(x!=numTargets){
-							//printf("command: %s\n", targets[x].szCommand);
+							printf("command: %s\n", targets[x].szCommand);
 						}
 					}
 					exit(1);

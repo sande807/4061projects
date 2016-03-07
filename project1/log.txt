@@ -1,0 +1,1 @@
+command: rm -rf main1.o cal.o parse.o util.a make4061
