@@ -9,3 +9,6 @@ words
 bookTest
 *.zip
 mock_app_example/
+*.pdf
+server
+shell

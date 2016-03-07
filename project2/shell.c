@@ -57,9 +57,18 @@ int main(int argc, char **argv)
 	
 	/***** Insert YOUR code *******/
 	
+	//child pid for fork
+	pid_t childpid ;
+	
 	/* Extract pipe descriptors and name from argv */
 
 	/* Fork a child to read from the pipe continuously */
+	childpid = fork() ;
+	if (childpid == -1) {
+		//fork fails
+		perror("Failed to fork.") ;
+		return 1 ;
+	}
 
 	/*
 	 * Once inside the child

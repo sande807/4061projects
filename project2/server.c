@@ -181,18 +181,48 @@ void send_p2p_msg(int idx, user_chat_box_t *users, char *buf)
 
 int main(int argc, char **argv)
 {
-	
 	/***** Insert YOUR code *******/
 	
+	//pipe arrays
+	int fd1[2] ;
+	int fd2[2] ;
+	
+	//child pid for fork
+	pid_t childpid ;
+	
 	/* open non-blocking bi-directional pipes for communication with server shell */
+	if (pipe(fd1) == -1 || pipe(fd2) == -1) {
+		//pipe fails
+		perror("Failed to create the pipe.") ;
+		return 1 ;
+	}
 
 	/* Fork the server shell */
-
+	childpid = fork() ;
+	if (childpid == -1) {
+		//fork fails
+		perror("Failed to fork.") ;
+		return 1 ;
+	}
 		/* 
 	 	 * Inside the child.
 		 * Start server's shell.
 	 	 * exec the SHELL program with the required program arguments.
 	 	 */
+	
+	/* pipes need to be passed to the server SHELL process as arguments
+	 * this way the SHELL knows which pipes it needs to read and wrtie on
+	 * for communicating with the server
+	 * 
+	 * the name of the server needs to be passed to the SHELL process so
+	 * it can be displayed as part of the SHELL prompt
+	 */
+	if (childpid == 0) {
+		//start server shell?
+	}
+	else {
+		//exec shell program?
+	}
 
 	/* Inside the parent. This will be the most important part of this program. */
 
