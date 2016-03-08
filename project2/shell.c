@@ -50,6 +50,8 @@ int is_empty(char *line)
 void sh_start(char *name, int fd_toserver)
 {
 	/***** Insert YOUR code *******/
+	print_prompt(name);
+
 }
 
 int main(int argc, char **argv)

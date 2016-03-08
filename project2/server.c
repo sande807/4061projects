@@ -41,8 +41,14 @@ int list_users(user_chat_box_t *users, int fd)
 	 * Construct a list of user names
 	 * Don't forget to send the list to the requester!
 	 */
-	 
+	 int i;
 	 /***** Insert YOUR code *******/
+	for (i = 0; i < MAX_USERS; i++) {//go through all the users
+		if (users[i].status == SLOT_EMPTY)//if a slot is empty ignore it
+			continue;
+		if (write(fd, users[i].name, strlen(users[i].name) + 1) < 0)//otherwise write the name of that user to the file descriptor given
+			perror("write to child shell failed");//if it's -1 write some error
+	}
 }
 
 /*
@@ -60,7 +66,8 @@ int add_user(user_chat_box_t *users, char *buf, int server_fd)
 	 *
 	 * NOTE: You may want to remove any newline characters from the name string 
 	 * before adding it. This will help in future name-based search.
-	 */ 
+	 */
+
 }
 
 /*
@@ -182,10 +189,16 @@ void send_p2p_msg(int idx, user_chat_box_t *users, char *buf)
 int main(int argc, char **argv)
 {
 	/***** Insert YOUR code *******/
-	
+	char command[MSG_SIZE];//a place to put the incoming command
+	char user1[MSG_SIZE];//a place to put a users name
+	char user2[MSG_SIZE];//a place for another user (p2p)
+	int cmd, i;//int version of command for parsing. also i.
+	user_chat_box_t users[10];//an array of users
+	server_ctrl_t server;
+
 	//pipe arrays
-	int fd1[2] ;
-	int fd2[2] ;
+	int fd1[2] ;//server.c to server shell
+	int fd2[2] ;//server shell to server.c
 	
 	//child pid for fork
 	pid_t childpid ;
@@ -232,12 +245,10 @@ int main(int argc, char **argv)
 		while (1) {
 			/* Let the CPU breathe */
 			usleep(1000);
-
 			/* 
 		 	 * 1. Read the message from server's shell, if any
 		 	 * 2. Parse the command
 		 	 * 3. Begin switch statement to identify command and take appropriate action
-		 	 *
 		 	 * 		List of commands to handle here:
 		 	 * 			CHILD_PID
 		 	 * 			LIST_USERS
@@ -246,14 +257,46 @@ int main(int argc, char **argv)
 		 	 * 			EXIT
 		 	 * 			BROADCAST 
 		 	 */
-				
+			//read fd2[0] (server shell to program), put the result in command
+			read(fd2[0], command, MSG_SIZE);//maybe check if there's nothing there?
+			//NOT SURE IF FILE DESCRIPTOR IS CORRECT
+			//parse command
+			cmd = parse_command(command);
+			//switch statement
+			if(cmd == CHILD_PID){
+				//no idea what this one does
+				//
+			}else if(cmd == LIST_USERS){
+				//PROBABLY NOT RIGHT FILE DESCRIPTOR
+				if(list_users(users,fd1[1])<0)//send list of users to server shell(fd1[0])???
+					perror("failed to list users");
+			}else if (cmd == ADD_USER){
+				user1 = extract_name(cmd, command);
+				add_user(users, user1, fd1[0]);//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
+			}else if(cmd == KICK){
+				user1 = extract_name(cmd, command);
+				i=find_user_index(users, user1);
+				if(i<0){
+					perror("user not found");
+				}
+				cleanup_user(i, users);
+			}else if(cmd == EXIT){
+				cleanup_server(server);
+			}else{//broadcast
+				broadcast_msg(users,command,fd1[0],"server");//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
+			}
 			/* Fork a process if a user was added (ADD_USER) */
 				/* Inside the child */
 				/*
 			 	 * Start an xterm with shell program running inside it.
 			 	 * execl(XTERM_PATH, XTERM, "+hold", "-e", <path for the SHELL program>, ..<rest of the arguments for the shell program>..);
 			 	 */
-
+			if (childpid == 0) {
+				//start new user shell?
+			}
+			else {
+				//exec user program?
+			}
 			/* Back to our main while loop for the "parent" */
 			/* 
 		 	 * Now read messages from the user shells (ie. LOOP) if any, then:
@@ -272,7 +315,31 @@ int main(int argc, char **argv)
 		 	 * 		from recitations?)
 		 	 * 		Cleanup user if the window is indeed closed.
 		 	 */
-
+			for (i = 0; i < MAX_USERS; i++) {//this will go through all the users
+				if (users[i].status == SLOT_EMPTY)//if there is no user at this spot, skip it
+					continue;
+				//otherwise, see if they have something to read
+				//read file descriptor for a command
+				read(fd2[0], command, MSG_SIZE);//maybe check if there's nothing there?
+				//NOT SURE IF FILE DESCRIPTOR IS CORRECT
+				//parse command
+				cmd = parse_command(command);
+				//switch statement
+				if(cmd == CHILD_PID){
+					//no idea what this one does
+					//
+				}else if(cmd == LIST_USERS){
+					//PROBABLY NOT RIGHT FILE DESCRIPTOR
+					if(list_users(users,fd1[1])<0)//send list of users to server shell(fd1[0])???
+						perror("failed to list users");
+				}else if (cmd == P2P){
+					send_p2p_msg(i,users,command);//pass the command, then use command to find which user its supposed to go to
+				}else if(cmd == EXIT){
+					cleanup_user(i, users);
+				}else{//broadcast
+					broadcast_msg(users,command,fd1[0],"server");//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
+				}
+			}
 	}	/* while loop ends when server shell sees the \exit command */
 
 	return 0;
