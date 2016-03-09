@@ -41,8 +41,10 @@ int list_users(user_chat_box_t *users, int fd)
 	 * Construct a list of user names
 	 * Don't forget to send the list to the requester!
 	 */
-	 int i;
-	 /***** Insert YOUR code *******/
+	 
+	/***** Insert YOUR code *******/
+	 
+	int i ;
 	for (i = 0; i < MAX_USERS; i++) {
 		//go through all the users
 		
@@ -53,7 +55,19 @@ int list_users(user_chat_box_t *users, int fd)
 		//otherwise write the name of that user to the file descriptor given
 		if (write(fd, users[i].name, strlen(users[i].name) + 1) < 0)
 			//if it's -1 write some error
+			/* i think we are supposed to write an error message to screen
+			 * instead of sending an error that would kill the entire 
+			 * process.
+			 *
 			perror("write to child shell failed");
+			*/
+			fprintf(stderr, "Unable to list users.\n");
+			
+			/* or do we simply say there are no useres to list and do
+			 * the following
+			frpintf(stderr, "<no users>\n") ;
+			*/
+			
 	}
 	//is this function complete?
 }
