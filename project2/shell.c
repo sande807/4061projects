@@ -51,6 +51,16 @@ void sh_start(char *name, int fd_toserver)
 {
 	/***** Insert YOUR code *******/
 	print_prompt(name);
+	
+	//declaring bufsize
+	ssize_t bufsize = 0 ;
+	
+	//read user input	
+	//i think this is right, causes warning but no error
+	if (read(fd_toserver, bufsize, MSG_SIZE) <= 0) {
+		//throw error if user input cannot be read
+		perror("Cannot read user input.") ;
+	}
 
 }
 

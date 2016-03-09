@@ -43,12 +43,19 @@ int list_users(user_chat_box_t *users, int fd)
 	 */
 	 int i;
 	 /***** Insert YOUR code *******/
-	for (i = 0; i < MAX_USERS; i++) {//go through all the users
-		if (users[i].status == SLOT_EMPTY)//if a slot is empty ignore it
+	for (i = 0; i < MAX_USERS; i++) {
+		//go through all the users
+		
+		//if a slot is empty ignore it
+		if (users[i].status == SLOT_EMPTY)
 			continue;
-		if (write(fd, users[i].name, strlen(users[i].name) + 1) < 0)//otherwise write the name of that user to the file descriptor given
-			perror("write to child shell failed");//if it's -1 write some error
+			
+		//otherwise write the name of that user to the file descriptor given
+		if (write(fd, users[i].name, strlen(users[i].name) + 1) < 0)
+			//if it's -1 write some error
+			perror("write to child shell failed");
 	}
+	//is this function complete?
 }
 
 /*
@@ -67,6 +74,9 @@ int add_user(user_chat_box_t *users, char *buf, int server_fd)
 	 * NOTE: You may want to remove any newline characters from the name string 
 	 * before adding it. This will help in future name-based search.
 	 */
+	
+	//user limit is 10, check limit
+	//if 
 
 }
 
@@ -92,6 +102,8 @@ int broadcast_msg(user_chat_box_t *users, char *buf, int fd, char *sender)
 		if (write(users[i].ptoc[1], text, strlen(text) + 1) < 0)
 			perror("write to child shell failed");
 	}
+	
+	//is this function complete?
 }
 
 /*
@@ -100,6 +112,18 @@ int broadcast_msg(user_chat_box_t *users, char *buf, int fd, char *sender)
 void close_pipes(int idx, user_chat_box_t *users)
 {
 	/***** Insert YOUR code *******/
+	int i ;
+	
+	//is this correct?
+	//do we have to use pids here? i don't think so but maybe
+	for (i = 0; i < MAX_USERS; i++) {
+		
+		if (users[i].status == SLOT_EMPTY)
+			continue ;
+			
+		close(idx) ;
+	}
+	
 }
 
 /*
@@ -184,10 +208,26 @@ void send_p2p_msg(int idx, user_chat_box_t *users, char *buf)
 	/* get the target user by name (hint: call (extract_name() and send message */
 	
 	/***** Insert YOUR code *******/
+	
+	char *msg ;
+	int i ;
+	
+	msg = extract_name(idx, buf) ;
+	
+	for (i = 0; i < MAX_USERS; i++) {
+		
+		if (users[i].status == SLOT_EMPTY)
+			continue ;
+			
+		//if (
+		
+	}
+	
 }
 
 int main(int argc, char **argv)
 {
+	printf("wokring") ;
 	/***** Insert YOUR code *******/
 	char command[MSG_SIZE];//a place to put the incoming command
 	char user1[MSG_SIZE];//a place to put a users name
@@ -230,6 +270,7 @@ int main(int argc, char **argv)
 	 * the name of the server needs to be passed to the SHELL process so
 	 * it can be displayed as part of the SHELL prompt
 	 */
+	 
 	if (childpid == 0) {
 		//start server shell?
 	}
@@ -257,33 +298,58 @@ int main(int argc, char **argv)
 		 	 * 			EXIT
 		 	 * 			BROADCAST 
 		 	 */
+			
 			//read fd2[0] (server shell to program), put the result in command
 			read(fd2[0], command, MSG_SIZE);//maybe check if there's nothing there?
 			//NOT SURE IF FILE DESCRIPTOR IS CORRECT
+			
 			//parse command
 			cmd = parse_command(command);
+			
 			//switch statement
 			if(cmd == CHILD_PID){
+				
 				//no idea what this one does
 				//
+				
 			}else if(cmd == LIST_USERS){
+				
 				//PROBABLY NOT RIGHT FILE DESCRIPTOR
-				if(list_users(users,fd1[1])<0)//send list of users to server shell(fd1[0])???
+				if(list_users(users,fd1[1])<0)
+					//send list of users to server shell(fd1[0])???
 					perror("failed to list users");
+					
 			}else if (cmd == ADD_USER){
-				user1 = extract_name(cmd, command);
+				
+				//user is a char array, and therefore should be treated as such
+				//user1[0] = extract_name(cmd, command); this brings warning but is allowed
+				user1[0] = *extract_name(cmd, command) ;
+				
 				add_user(users, user1, fd1[0]);//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
+				
 			}else if(cmd == KICK){
-				user1 = extract_name(cmd, command);
+				
+				//user is a char array, and therefore should be treated as such
+				//user1[0] = extract_name(cmd, command) ; this brings warning but is allowed
+				user1[0] = *extract_name(cmd, command) ;
+				
 				i=find_user_index(users, user1);
+				
 				if(i<0){
 					perror("user not found");
 				}
+				
 				cleanup_user(i, users);
+				
 			}else if(cmd == EXIT){
+				
 				cleanup_server(server);
-			}else{//broadcast
+				
+			}else{
+				
+				//broadcast
 				broadcast_msg(users,command,fd1[0],"server");//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
+				
 			}
 			/* Fork a process if a user was added (ADD_USER) */
 				/* Inside the child */
@@ -316,28 +382,44 @@ int main(int argc, char **argv)
 		 	 * 		Cleanup user if the window is indeed closed.
 		 	 */
 			for (i = 0; i < MAX_USERS; i++) {//this will go through all the users
+				
 				if (users[i].status == SLOT_EMPTY)//if there is no user at this spot, skip it
 					continue;
+				
 				//otherwise, see if they have something to read
+				
 				//read file descriptor for a command
 				read(fd2[0], command, MSG_SIZE);//maybe check if there's nothing there?
 				//NOT SURE IF FILE DESCRIPTOR IS CORRECT
+				
 				//parse command
 				cmd = parse_command(command);
+				
 				//switch statement
 				if(cmd == CHILD_PID){
+					
 					//no idea what this one does
 					//
+					
 				}else if(cmd == LIST_USERS){
+					
 					//PROBABLY NOT RIGHT FILE DESCRIPTOR
 					if(list_users(users,fd1[1])<0)//send list of users to server shell(fd1[0])???
 						perror("failed to list users");
+						
 				}else if (cmd == P2P){
+					
 					send_p2p_msg(i,users,command);//pass the command, then use command to find which user its supposed to go to
+					
 				}else if(cmd == EXIT){
+					
 					cleanup_user(i, users);
-				}else{//broadcast
+					
+				}else{
+					
+					//broadcast
 					broadcast_msg(users,command,fd1[0],"server");//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
+					
 				}
 			}
 	}	/* while loop ends when server shell sees the \exit command */
