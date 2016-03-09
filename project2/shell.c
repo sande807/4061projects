@@ -13,6 +13,8 @@ char *sh_read_line(void)
 	ssize_t bufsize = 0;
 
 	getline(&line, &bufsize, stdin);
+	printf("line: %s \n", line);
+	printf("exit sh read line\n");
 	return line;
 }
 
@@ -25,9 +27,9 @@ int sh_handle_input(char *line, int fd_toserver)
 	/***** Insert YOUR code *******/
 	
  	/* Check for \seg command and create segfault */
-	
+	printf("handling input! jk i do nothing \n");
 	/* Write message to server for processing */
-	return 0;
+	return 1;
 }
 
 /*
@@ -42,7 +44,6 @@ int is_empty(char *line)
 	}
 	return 1;
 }
-
 /*
  * Start the main shell loop:
  * Print prompt, read user input, handle it.
@@ -51,16 +52,26 @@ void sh_start(char *name, int fd_toserver)
 {
 	/***** Insert YOUR code *******/
 	print_prompt(name);
-	
-	//declaring bufsize
-	ssize_t bufsize = 0 ;
-	
-	//read user input	
-	//i think this is right, causes warning but no error
-	if (read(fd_toserver, bufsize, MSG_SIZE) <= 0) {
-		//throw error if user input cannot be read
-		perror("Cannot read user input.") ;
+	char *input;
+	ssize_t bufsize = 0;
+
+	//read user input
+	while(1){
+		printf("start loop\n");
+		usleep(1000);
+		input = sh_read_line();
+		if(is_empty(input)){
+		
+		}else{
+			input = sh_read_line();
+			printf("something has been written\n");
+			printf("%s\n", input);
+			sh_handle_input(input,fd_toserver);
+			printf("\n");
+			print_prompt(name);
+		}
 	}
+
 
 }
 
@@ -68,12 +79,14 @@ int main(int argc, char **argv)
 {
 	
 	/***** Insert YOUR code *******/
-	
+	printf("started shell yay\n");
 	//child pid for fork
 	pid_t childpid ;
+	char *name = argv[0];
 	
 	/* Extract pipe descriptors and name from argv */
-
+	int fd1[2];
+	int fd2[2];
 	/* Fork a child to read from the pipe continuously */
 	childpid = fork() ;
 	if (childpid == -1) {
@@ -81,14 +94,20 @@ int main(int argc, char **argv)
 		perror("Failed to fork.") ;
 		return 1 ;
 	}
-
 	/*
 	 * Once inside the child
 	 * look for new data from server every 1000 usecs and print it
 	 */ 
-
+	if (childpid == 0) {
+		printf("child of shell to check for server.c input\n");
+	}
 	/* Inside the parent
 	 * Send the child's pid to the server for later cleanup
 	 * Start the main shell loop
 	 */
+	else if (childpid > 0) {
+		printf("parent process of shell, next is sh_start\n");
+		sh_start(name,fd1[0]);
+	}
+	
 }

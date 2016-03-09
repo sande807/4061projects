@@ -241,13 +241,13 @@ void send_p2p_msg(int idx, user_chat_box_t *users, char *buf)
 
 int main(int argc, char **argv)
 {
-	printf("wokring") ;
+	printf("starting\n");
 	/***** Insert YOUR code *******/
 	char command[MSG_SIZE];//a place to put the incoming command
 	char user1[MSG_SIZE];//a place to put a users name
 	char user2[MSG_SIZE];//a place for another user (p2p)
 	int cmd, i;//int version of command for parsing. also i.
-	user_chat_box_t users[10];//an array of users
+	user_chat_box_t users[MAX_USERS];//an array of users
 	server_ctrl_t server;
 
 	//pipe arrays
@@ -269,14 +269,15 @@ int main(int argc, char **argv)
 		perror("Failed to create the pipe.") ;
 		return 1 ;
 	}
-
+	printf("create pipe done\n");
 	/* Fork the server shell */
+	printf("fork now\n");
 	childpid = fork() ;
-	/*if (childpid == -1) {
+	if (childpid == -1) {
 		//fork fails
 		perror("Failed to fork.") ;
 		return 1 ;
-	}*/
+	}
 		/* 
 	 	 * Inside the child.
 		 * Start server's shell.
@@ -290,19 +291,21 @@ int main(int argc, char **argv)
 	 * the name of the server needs to be passed to the SHELL process so
 	 * it can be displayed as part of the SHELL prompt
 	 */
-	 
 	if (childpid == 0) {
-		//start server shell?
+		//start server shell
+		printf("i am child");
+		execl("./shell", "server", fd1,fd2 , NULL);
 	}
 	else if (childpid > 0) {
-		//exec shell program?
-	}
-
+		//exec shell program
+		printf("parent process, continuing to shell program\n");
+	//}
 	/* Inside the parent. This will be the most important part of this program. */
 
 		/* Start a loop which runs every 1000 usecs.
 	 	 * The loop should read messages from the server shell, parse them using the 
 	 	 * parse_command() function and take the appropriate actions. */
+		printf("starting server.c loop\n");
 		while (1) {
 			/* Let the CPU breathe */
 			usleep(1000);
@@ -371,17 +374,31 @@ int main(int argc, char **argv)
 				broadcast_msg(users,command,fd1[0],"server");//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
 				
 			}
+
 			/* Fork a process if a user was added (ADD_USER) */
 				/* Inside the child */
 				/*
 			 	 * Start an xterm with shell program running inside it.
 			 	 * execl(XTERM_PATH, XTERM, "+hold", "-e", <path for the SHELL program>, ..<rest of the arguments for the shell program>..);
 			 	 */
-			if (childpid == 0) {
-				//start new user shell?
-			}
-			else {
-				//exec user program?
+			if(cmd == ADD_USER){
+				childpid = fork();
+				if (childpid == -1) {
+					//fork fails
+					perror("Failed to fork.") ;
+					return 1 ;
+				}
+
+				if (childpid == 0) {//if it's the child process open an xterm window and run ./shell and pass in some arguments
+					printf("child program\n");
+					execl(XTERM_PATH, XTERM, "+hold","-e","./shell", NULL);
+				}
+				else if (childpid > 0) {
+					//exec shell program?
+					wait();
+					printf("parent program\n");
+					printf("done\n");	
+				}
 			}
 			/* Back to our main while loop for the "parent" */
 			/* 
@@ -443,6 +460,6 @@ int main(int argc, char **argv)
 				}
 			}
 	}	/* while loop ends when server shell sees the \exit command */
-
+	}
 	return 0;
 }

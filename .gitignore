@@ -2,6 +2,8 @@
 *.o
 *~
 *.swp
+*.swo
+.nfs*
 make4061
 test2
 a.out
