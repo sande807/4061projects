@@ -258,6 +258,12 @@ int main(int argc, char **argv)
 	pid_t childpid ;
 	
 	/* open non-blocking bi-directional pipes for communication with server shell */
+	
+	//code for making pipes non-blocking
+	int flags ;
+	//flags = fcntl (fd, F_GETFL, 0) ; not sure what fd should be
+	fcntl (fd1[0], F_SETFL, flags | O_NONBLOCK) ;
+	
 	if (pipe(fd1) == -1 || pipe(fd2) == -1) {
 		//pipe fails
 		perror("Failed to create the pipe.") ;
@@ -266,11 +272,11 @@ int main(int argc, char **argv)
 
 	/* Fork the server shell */
 	childpid = fork() ;
-	if (childpid == -1) {
+	/*if (childpid == -1) {
 		//fork fails
 		perror("Failed to fork.") ;
 		return 1 ;
-	}
+	}*/
 		/* 
 	 	 * Inside the child.
 		 * Start server's shell.
@@ -288,7 +294,7 @@ int main(int argc, char **argv)
 	if (childpid == 0) {
 		//start server shell?
 	}
-	else {
+	else if (childpid > 0) {
 		//exec shell program?
 	}
 
