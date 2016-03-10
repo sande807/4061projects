@@ -66,10 +66,8 @@ int list_users(user_chat_box_t *users, int fd)
 			/* or do we simply say there are no useres to list and do
 			 * the following
 			frpintf(stderr, "<no users>\n") ;
-			*/
-			
+			*/	
 	}
-	//is this function complete?
 }
 
 /*
@@ -116,8 +114,6 @@ int broadcast_msg(user_chat_box_t *users, char *buf, int fd, char *sender)
 		if (write(users[i].ptoc[1], text, strlen(text) + 1) < 0)
 			perror("write to child shell failed");
 	}
-	
-	//is this function complete?
 }
 
 /*
@@ -126,17 +122,10 @@ int broadcast_msg(user_chat_box_t *users, char *buf, int fd, char *sender)
 void close_pipes(int idx, user_chat_box_t *users)
 {
 	/***** Insert YOUR code *******/
-	int i ;
-	
-	//is this correct?
-	//do we have to use pids here? i don't think so but maybe
-	for (i = 0; i < MAX_USERS; i++) {
-		
-		if (users[i].status == SLOT_EMPTY)
-			continue ;
-			
-		close(idx) ;
-	}
+	close(users[idx].ptoc[0]);
+	close(users[idx].ptoc[1]);
+	close(users[idx].ctop[0]);
+	close(users[idx].ctop[1]);
 	
 }
 
@@ -148,6 +137,12 @@ void close_pipes(int idx, user_chat_box_t *users)
 void cleanup_user(int idx, user_chat_box_t *users)
 {
 	/***** Insert YOUR code *******/
+	close_pipes(idx,users);
+	kill(users[idx].child_pid,0);
+	kill(users[idx].pid,0);
+	users[idx].status = SLOT_EMPTY;
+	//kill is probably incorrect, but this should be most of what we need to do
+
 }
 
 /*
@@ -172,6 +167,15 @@ void cleanup_users(user_chat_box_t *users)
 void cleanup_server(server_ctrl_t server_ctrl)
 {
 	/***** Insert YOUR code *******/
+	//cleanup_users(users);
+	//NEED TO CALL THIS BUT WE DONT GET THE USER STRUCTURE?
+	close(server_ctrl.ptoc[0]);//close one pipe end 0
+	close(server_ctrl.ptoc[1]);//close one pipe end 1
+	close(server_ctrl.ctop[0]);//close the other pipe end 0
+	close(server_ctrl.ctop[1]);//close the other pipe end 1
+	kill(server_ctrl.child_pid,0);//kill the child
+	kill(server_ctrl.pid,0);//kill yourself
+	//kill command probably wrong but this is what we need to do
 }
 
 /*
@@ -247,6 +251,7 @@ int main(int argc, char **argv)
 	char user1[MSG_SIZE];//a place to put a users name
 	char user2[MSG_SIZE];//a place for another user (p2p)
 	int cmd, i;//int version of command for parsing. also i.
+	int usercount = 0;//user count cause this is easier
 	user_chat_box_t users[MAX_USERS];//an array of users
 	server_ctrl_t server;
 
@@ -262,7 +267,8 @@ int main(int argc, char **argv)
 	//code for making pipes non-blocking
 	int flags ;
 	//flags = fcntl (fd, F_GETFL, 0) ; not sure what fd should be
-	fcntl (fd1[0], F_SETFL, flags | O_NONBLOCK) ;
+	fcntl (fd1[0], F_SETFL, flags | O_NONBLOCK);
+	fcntl (fd2[0], F_SETFL, flags | O_NONBLOCK);
 	
 	if (pipe(fd1) == -1 || pipe(fd2) == -1) {
 		//pipe fails
@@ -293,12 +299,13 @@ int main(int argc, char **argv)
 	 */
 	if (childpid == 0) {
 		//start server shell
-		printf("i am child");
+		printf("i am child\n");
 		execl("./shell", "server", fd1,fd2 , NULL);
 	}
 	else if (childpid > 0) {
 		//exec shell program
 		printf("parent process, continuing to shell program\n");
+		//execl(XTERM_PATH, XTERM, "+hold","-e","./shell","user1", NULL);
 	//}
 	/* Inside the parent. This will be the most important part of this program. */
 

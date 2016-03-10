@@ -13,8 +13,6 @@ char *sh_read_line(void)
 	ssize_t bufsize = 0;
 
 	getline(&line, &bufsize, stdin);
-	printf("line: %s \n", line);
-	printf("exit sh read line\n");
 	return line;
 }
 
@@ -28,6 +26,8 @@ int sh_handle_input(char *line, int fd_toserver)
 	
  	/* Check for \seg command and create segfault */
 	printf("handling input! jk i do nothing \n");
+	//look for segfault command
+	//otherwise send input to server.c for processing
 	/* Write message to server for processing */
 	return 1;
 }
@@ -53,40 +53,33 @@ void sh_start(char *name, int fd_toserver)
 	/***** Insert YOUR code *******/
 	print_prompt(name);
 	char *input;
-	ssize_t bufsize = 0;
+	input = (char *)malloc(MSG_SIZE);
 
-	//read user input
 	while(1){
-		printf("start loop\n");
 		usleep(1000);
 		input = sh_read_line();
-		if(is_empty(input)){
-		
-		}else{
-			input = sh_read_line();
-			printf("something has been written\n");
-			printf("%s\n", input);
-			sh_handle_input(input,fd_toserver);
-			printf("\n");
+		if(is_empty(input)){//if empty reprint the prompt
+			print_prompt(name);
+		}else{//otherwise send line to be handled, then reprint prompt line
+			sh_handle_input(input, fd_toserver);
 			print_prompt(name);
 		}
 	}
-
-
 }
 
 int main(int argc, char **argv)
 {
 	
 	/***** Insert YOUR code *******/
-	printf("started shell yay\n");
-	//child pid for fork
-	pid_t childpid ;
+	pid_t childpid;//child pid for fork
 	char *name = argv[0];
+	printf("began shell with name: %s\n", name);
 	
 	/* Extract pipe descriptors and name from argv */
+	int inpipe;
 	int fd1[2];
 	int fd2[2];
+
 	/* Fork a child to read from the pipe continuously */
 	childpid = fork() ;
 	if (childpid == -1) {
@@ -100,6 +93,13 @@ int main(int argc, char **argv)
 	 */ 
 	if (childpid == 0) {
 		printf("child of shell to check for server.c input\n");
+		char *buffer;
+		while(1){
+			usleep(1000);
+			inpipe = read(fd1[0], buffer, sizeof(buffer));//read pipe
+			if(buffer != NULL)
+				printf("string from pipe: %s\n", buffer);//print buffer
+		}
 	}
 	/* Inside the parent
 	 * Send the child's pid to the server for later cleanup
@@ -107,6 +107,8 @@ int main(int argc, char **argv)
 	 */
 	else if (childpid > 0) {
 		printf("parent process of shell, next is sh_start\n");
+		//send child's pid to the server for cleanup
+		//write(fd1[1], childpid, sizeof(childpid));//write to pipe
 		sh_start(name,fd1[0]);
 	}
 	

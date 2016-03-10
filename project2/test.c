@@ -241,24 +241,57 @@ void send_p2p_msg(int idx, user_chat_box_t *users, char *buf)
 
 int main(int argc, char **argv)
 {
-	int status;
+	int status, nbytes, flags;
+	int fd1[2];
+	int fd2[2];
 	printf("hello world\n");
+	fcntl (fd1[0], F_SETFL, flags | O_NONBLOCK);
+	fcntl (fd2[0], F_SETFL, flags | O_NONBLOCK);
+	char *string = "pipes suck\n";
+	char buffer[80];
+	ssize_t bufsize = 0;
+	
+	if (pipe(fd1) == -1 || pipe(fd2) == -1) {
+		//pipe fails
+		perror("Failed to create the pipe.") ;
+		return 1 ;
+	}
+	printf("created pipe, fork next\n");
+
 	pid_t childpid;
 	childpid = fork();
+	
 	if (childpid == -1) {
 		//fork fails
 		perror("Failed to fork.") ;
 		return 1 ;
 	}
+
 	if (childpid == 0) {
 		printf("child program\n");
-		execl(XTERM_PATH, XTERM, "+hold","-e","./shell", NULL);
-
+		//write to pipe and then immeadiately read from pipe
+		write(fd1[1], string, (strlen(string) + 1));//write to pipe
+		nbytes = read(fd1[0], buffer, sizeof(buffer));//read pipe
+		printf("string from pipe within child process: %s\n", buffer);//print buffer
+		//add string to pipe again
+		write(fd1[1], string, (strlen(string) + 1));//write to pipe
+		//wait for user input string, write to pipe
+		printf("user >> ");//print prompt
+		getline(&string, &bufsize, stdin);//get user input
+		printf("got user input\n");//let em know we got it
+		write(fd1[1], string, (strlen(string) + 1));//write to pipe again
+		exit(0);//child is done now
 	}
 	else if (childpid > 0) {
 		//exec shell program?
 		wait(&status);
 		printf("parent program\n");
+		//read and print whats in the pipe
+		nbytes = read(fd1[0], buffer, sizeof(buffer));//read and put in buffer
+		printf("string from pipe: %s\n", buffer);//print buffer
+		//this should be the second string in the pipe, user input
+		nbytes = read(fd1[0], buffer, sizeof(buffer));//read and put in buffer
+		printf("second string from pipe: %s\n", buffer);//print buffer
 		printf("done\n");
 
 	}
