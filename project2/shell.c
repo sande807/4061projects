@@ -11,8 +11,9 @@ char *sh_read_line(void)
 {
 	char *line = NULL;
 	ssize_t bufsize = 0;
-
-	getline(&line, &bufsize, stdin);
+	
+	if(getline(&line, &bufsize, stdin)<0)
+		return "input failed";
 	return line;
 }
 
@@ -23,11 +24,16 @@ int sh_handle_input(char *line, int fd_toserver)
 {
 	
 	/***** Insert YOUR code *******/
+	printf("handling input\n");
+	//look for \seg command
 	
- 	/* Check for \seg command and create segfault */
-	printf("handling input! jk i do nothing \n");
-	//look for segfault command
+	if(starts_with(line, CMD_SEG)){
+		printf("seg fault\n");
+		char *line = NULL;
+		*line = '0';
+	}
 	//otherwise send input to server.c for processing
+	write(fd_toserver,line,strlen(line)+1);
 	/* Write message to server for processing */
 	return 1;
 }
@@ -52,11 +58,9 @@ void sh_start(char *name, int fd_toserver)
 {
 	/***** Insert YOUR code *******/
 	print_prompt(name);
-	char *input;
+	char *input = NULL;
 	input = (char *)malloc(MSG_SIZE);
-
 	while(1){
-		usleep(1000);
 		input = sh_read_line();
 		if(is_empty(input)){//if empty reprint the prompt
 			print_prompt(name);

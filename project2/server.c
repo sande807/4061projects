@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/types.h>
+#include <signal.h>
 #include "util.h"
 
 /*
@@ -138,8 +139,8 @@ void cleanup_user(int idx, user_chat_box_t *users)
 {
 	/***** Insert YOUR code *******/
 	close_pipes(idx,users);
-	kill(users[idx].child_pid,0);
-	kill(users[idx].pid,0);
+	kill(users[idx].child_pid,SIGKILL);
+	kill(users[idx].pid,SIGKILL);
 	users[idx].status = SLOT_EMPTY;
 	//kill is probably incorrect, but this should be most of what we need to do
 
@@ -173,8 +174,8 @@ void cleanup_server(server_ctrl_t server_ctrl)
 	close(server_ctrl.ptoc[1]);//close one pipe end 1
 	close(server_ctrl.ctop[0]);//close the other pipe end 0
 	close(server_ctrl.ctop[1]);//close the other pipe end 1
-	kill(server_ctrl.child_pid,0);//kill the child
-	kill(server_ctrl.pid,0);//kill yourself
+	kill(server_ctrl.child_pid,SIGKILL);//kill the child
+	kill(server_ctrl.pid,SIGKILL);//kill yourself
 	//kill command probably wrong but this is what we need to do
 }
 
@@ -267,8 +268,8 @@ int main(int argc, char **argv)
 	//code for making pipes non-blocking
 	int flags ;
 	//flags = fcntl (fd, F_GETFL, 0) ; not sure what fd should be
-	fcntl (fd1[0], F_SETFL, flags | O_NONBLOCK);
-	fcntl (fd2[0], F_SETFL, flags | O_NONBLOCK);
+	//fcntl (fd1[0], F_SETFL, flags | O_NONBLOCK);
+	//fcntl (fd2[0], F_SETFL, flags | O_NONBLOCK);
 	
 	if (pipe(fd1) == -1 || pipe(fd2) == -1) {
 		//pipe fails
@@ -332,7 +333,7 @@ int main(int argc, char **argv)
 			//read fd2[0] (server shell to program), put the result in command
 			read(fd2[0], command, MSG_SIZE);//maybe check if there's nothing there?
 			//NOT SURE IF FILE DESCRIPTOR IS CORRECT
-			
+			printf("in server.c main loop command is: %s\n",command); 
 			//parse command
 			cmd = parse_command(command);
 			
@@ -398,7 +399,7 @@ int main(int argc, char **argv)
 
 				if (childpid == 0) {//if it's the child process open an xterm window and run ./shell and pass in some arguments
 					printf("child program\n");
-					execl(XTERM_PATH, XTERM, "+hold","-e","./shell", NULL);
+					execl(XTERM_PATH, XTERM, "+hold","-e","./shell","username", NULL);
 				}
 				else if (childpid > 0) {
 					//exec shell program?
@@ -433,7 +434,7 @@ int main(int argc, char **argv)
 				//otherwise, see if they have something to read
 				
 				//read file descriptor for a command
-				read(fd2[0], command, MSG_SIZE);//maybe check if there's nothing there?
+				read(users[i].ctop[0], command, MSG_SIZE);//maybe check if there's nothing there?
 				//NOT SURE IF FILE DESCRIPTOR IS CORRECT
 				
 				//parse command
@@ -466,7 +467,7 @@ int main(int argc, char **argv)
 					
 				}
 			}
-	}	/* while loop ends when server shell sees the \exit command */
+		}/* while loop ends when server shell sees the \exit command */
 	}
 	return 0;
 }
