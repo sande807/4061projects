@@ -111,16 +111,9 @@ int add_user(user_chat_box_t *users, char *buf, int server_fd)
 		if (write(server_fd, strcat(msg, buf), strlen(msg) + 1) < 0)
 			perror("writing to server shell") ;
 		
-		break;
-		
+		break;		
 	}
-		
-		
-		
-			
-		
-		
-
+	
 }
 
 /*
