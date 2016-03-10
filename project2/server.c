@@ -253,18 +253,27 @@ void send_p2p_msg(int idx, user_chat_box_t *users, char *buf)
 	
 	/***** Insert YOUR code *******/
 	
+	int i ;
 	char *p ;
 	
 	//get name of desired recipient
 	p = extract_name(idx, buf) ;
 	
 	//if recipient doesn't exist, print error to user shell
-	
-	//else, send message
-	
-	
-	
+	for (i = 0; i < MAX_USERS; i++) {
 		
+		if (users[i].status == SLOT_EMPTY)
+			continue ;
+			
+		if (strcmp(users[i].name, p) == 0) {
+			//send message
+			break ;
+		}
+	}
+	
+	//if user doesn't exists, print error
+	
+			
 	
 }
 
