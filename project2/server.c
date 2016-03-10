@@ -53,7 +53,7 @@ int list_users(user_chat_box_t *users, int fd)
 			continue;
 			
 		//otherwise write the name of that user to the file descriptor given
-		if (write(fd, users[i].name, strlen(users[i].name) + 1) < 0)
+		if (write(fd, users[i].name, strlen(users[i].name) + 1) < 0) {
 			//if it's -1 write some error
 			/* i think we are supposed to write an error message to screen
 			 * instead of sending an error that would kill the entire 
@@ -67,6 +67,7 @@ int list_users(user_chat_box_t *users, int fd)
 			 * the following
 			frpintf(stderr, "<no users>\n") ;
 			*/	
+		}
 	}
 }
 
@@ -86,9 +87,39 @@ int add_user(user_chat_box_t *users, char *buf, int server_fd)
 	 * NOTE: You may want to remove any newline characters from the name string 
 	 * before adding it. This will help in future name-based search.
 	 */
+
+	int i ;
+	int flags ;
 	
-	//user limit is 10, check limit
-	//if 
+	char *msg = "Adding user " ;
+	
+	for (i = 0; i < MAX_USERS; i++) {
+		
+		if (users[i].status == SLOT_FULL)
+			continue ;
+			
+		printf("adding user") ;
+		
+		//set user name	
+		strcpy(users[i].name, buf) ;
+		
+		//set up non-blocking pipes
+		flags = fcntl (server_fd, F_GETFL, 0) ; //not sure what fd should be
+		fcntl (users[i].ptoc[0], F_SETFL, flags | O_NONBLOCK); 
+		
+		//notify on server shell
+		if (write(server_fd, strcat(msg, buf), strlen(msg) + 1) < 0)
+			perror("writing to server shell") ;
+		
+		break;
+		
+	}
+		
+		
+		
+			
+		
+		
 
 }
 
@@ -142,6 +173,8 @@ void cleanup_user(int idx, user_chat_box_t *users)
 	kill(users[idx].pid,0);
 	users[idx].status = SLOT_EMPTY;
 	//kill is probably incorrect, but this should be most of what we need to do
+	
+	//has the waiting been done here?
 
 }
 
@@ -227,19 +260,18 @@ void send_p2p_msg(int idx, user_chat_box_t *users, char *buf)
 	
 	/***** Insert YOUR code *******/
 	
-	char *msg ;
-	int i ;
+	char *p ;
 	
-	msg = extract_name(idx, buf) ;
+	//get name of desired recipient
+	p = extract_name(idx, buf) ;
 	
-	for (i = 0; i < MAX_USERS; i++) {
+	//if recipient doesn't exist, print error to user shell
+	
+	//else, send message
+	
+	
+	
 		
-		if (users[i].status == SLOT_EMPTY)
-			continue ;
-			
-		//if (
-		
-	}
 	
 }
 
@@ -266,7 +298,7 @@ int main(int argc, char **argv)
 	
 	//code for making pipes non-blocking
 	int flags ;
-	//flags = fcntl (fd, F_GETFL, 0) ; not sure what fd should be
+	//flags = fcntl (fd1, F_GETFL, 0) ; //not sure what fd should be
 	fcntl (fd1[0], F_SETFL, flags | O_NONBLOCK);
 	fcntl (fd2[0], F_SETFL, flags | O_NONBLOCK);
 	
@@ -354,7 +386,7 @@ int main(int argc, char **argv)
 				//user is a char array, and therefore should be treated as such
 				//user1[0] = extract_name(cmd, command); this brings warning but is allowed
 				user1[0] = *extract_name(cmd, command) ;
-				
+				printf("adding user, not in func") ;
 				add_user(users, user1, fd1[0]);//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
 				
 			}else if(cmd == KICK){
