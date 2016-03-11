@@ -93,6 +93,7 @@ int add_user(user_chat_box_t *users, char *buf, int server_fd)
 	int flags ;
 	
 	char *msg = "Adding user " ;
+	char *s = strtok(buf, "\n") ;
 	
 	for (i = 0; i < MAX_USERS; i++) {
 		
@@ -102,14 +103,14 @@ int add_user(user_chat_box_t *users, char *buf, int server_fd)
 		printf("adding user") ;
 		
 		//set user name	
-		strcpy(users[i].name, buf) ;
+		strcpy(users[i].name, s) ;
 		
 		//set up non-blocking pipes
 		flags = fcntl (server_fd, F_GETFL, 0) ; //not sure what fd should be
 		fcntl (users[i].ptoc[0], F_SETFL, flags | O_NONBLOCK); 
 		
 		//notify on server shell
-		if (write(server_fd, strcat(msg, buf), strlen(msg) + 1) < 0)
+		if (write(server_fd, strcat(msg, s), strlen(msg) + 1) < 0)
 			perror("writing to server shell") ;
 		
 		break;		
@@ -291,8 +292,11 @@ int main(int argc, char **argv)
 	server_ctrl_t server;
 
 	//pipe arrays
-	int fd1[2] ;//server.c to server shell
-	int fd2[2] ;//server shell to server.c
+	int fd_tshell[2] ;//server.c to server shell
+	int fd_fshell[2] ;//server shell to server.c
+	
+	int flag_t ;
+	int flag_f ;
 	
 	//child pid for fork
 	pid_t childpid ;
@@ -300,17 +304,26 @@ int main(int argc, char **argv)
 	/* open non-blocking bi-directional pipes for communication with server shell */
 	
 	//code for making pipes non-blocking
-	int flags ;
+	//int flags ;
 	//flags = fcntl (fd, F_GETFL, 0) ; not sure what fd should be
 	//fcntl (fd1[0], F_SETFL, flags | O_NONBLOCK);
 	//fcntl (fd2[0], F_SETFL, flags | O_NONBLOCK);
 
 	
-	if (pipe(fd1) == -1 || pipe(fd2) == -1) {
+	if (pipe(fd_tshell) == -1 || pipe(fd_fshell) == -1) {
 		//pipe fails
 		perror("Failed to create the pipe.") ;
 		return 1 ;
 	}
+	
+	flag_t = fcntl(* fd_tshell, F_GETFL, 0) ;
+	fcntl(fd_tshell[0], F_SETFL, flag_t | O_NONBLOCK) ;
+	
+	flag_f = fcntl(* fd_fshell, F_GETFL, 0) ;
+	fcntl(fd_fshell[1], F_SETFL, flag_f | O_NONBLOCK) ;
+	
+	
+	
 	printf("create pipe done\n");
 	/* Fork the server shell */
 	printf("fork now\n");
@@ -335,12 +348,14 @@ int main(int argc, char **argv)
 	 */
 	if (childpid == 0) {
 		//start server shell
-		printf("i am child\n");
-		execl("./shell", "server", fd1,fd2 , NULL);
+		//int write = fd_fshell[1];
+		//int read = fd_tshell[0];
+		printf("i am child, attempting to start shell\n");
+		execl("./shell", "Server", fd_fshell, fd_tshell, NULL);
 	}
 	else if (childpid > 0) {
 		//exec shell program
-		printf("parent process, continuing to shell program\n");
+		printf("parent process, continuing to server program\n");
 		//execl(XTERM_PATH, XTERM, "+hold","-e","./shell","user1", NULL);
 	//}
 	/* Inside the parent. This will be the most important part of this program. */
@@ -366,7 +381,9 @@ int main(int argc, char **argv)
 		 	 */
 			
 			//read fd2[0] (server shell to program), put the result in command
-			read(fd2[0], command, MSG_SIZE);//maybe check if there's nothing there?
+			printf("before read\n");
+			read(fd_fshell[0], command, MSG_SIZE);//maybe check if there's nothing there?
+			printf("after read\n") ;
 			//NOT SURE IF FILE DESCRIPTOR IS CORRECT
 			printf("in server.c main loop command is: %s\n",command); 
 			//parse command
@@ -376,22 +393,20 @@ int main(int argc, char **argv)
 			if(cmd == CHILD_PID){
 				
 				//no idea what this one does
-				//
 				
 			}else if(cmd == LIST_USERS){
 				
 				//PROBABLY NOT RIGHT FILE DESCRIPTOR
-				if(list_users(users,fd1[1])<0)
+				if(list_users(users,fd_tshell[1]) < 0)
 					//send list of users to server shell(fd1[0])???
 					perror("failed to list users");
 					
 			}else if (cmd == ADD_USER){
 				
 				//user is a char array, and therefore should be treated as such
-				//user1[0] = extract_name(cmd, command); this brings warning but is allowed
 				user1[0] = *extract_name(cmd, command) ;
 				printf("adding user, not in func") ;
-				add_user(users, user1, fd1[0]);//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
+				add_user(users, user1, fd_fshell[0]);//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
 				
 			}else if(cmd == KICK){
 				
@@ -414,7 +429,7 @@ int main(int argc, char **argv)
 			}else{
 				
 				//broadcast
-				broadcast_msg(users,command,fd1[0],"server");//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
+				broadcast_msg(users,command,fd_tshell[0],"server");//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
 				
 			}
 
@@ -461,10 +476,13 @@ int main(int argc, char **argv)
 		 	 * 		from recitations?)
 		 	 * 		Cleanup user if the window is indeed closed.
 		 	 */
-			for (i = 0; i < MAX_USERS; i++) {//this will go through all the users
+		 	 
+			for (i = 0; i < MAX_USERS; i++) {
 				
-				if (users[i].status == SLOT_EMPTY)//if there is no user at this spot, skip it
+				if (users[i].status == SLOT_EMPTY) {
+					//if there is no user at this spot, skip it
 					continue;
+				}		
 				
 				//otherwise, see if they have something to read
 				
@@ -484,7 +502,7 @@ int main(int argc, char **argv)
 				}else if(cmd == LIST_USERS){
 					
 					//PROBABLY NOT RIGHT FILE DESCRIPTOR
-					if(list_users(users,fd1[1])<0)//send list of users to server shell(fd1[0])???
+					if(list_users(users,fd_tshell[1])<0)//send list of users to server shell(fd1[0])???
 						perror("failed to list users");
 						
 				}else if (cmd == P2P){
@@ -498,7 +516,7 @@ int main(int argc, char **argv)
 				}else{
 					
 					//broadcast
-					broadcast_msg(users,command,fd1[0],"server");//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
+					broadcast_msg(users,command,fd_tshell[1],"server");//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
 					
 				}
 			}
