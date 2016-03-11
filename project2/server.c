@@ -318,7 +318,6 @@ int main(int argc, char **argv)
 	
 	flag_t = fcntl(* fd_tshell, F_GETFL, 0) ;
 	fcntl(fd_tshell[0], F_SETFL, flag_t | O_NONBLOCK) ;
-	
 	flag_f = fcntl(* fd_fshell, F_GETFL, 0) ;
 	fcntl(fd_fshell[1], F_SETFL, flag_f | O_NONBLOCK) ;
 	
