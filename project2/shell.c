@@ -96,10 +96,15 @@ int main(int argc, char **argv)
 	name = argv[0] ;
 	
 	//extract pipe descriptors from argv
-	fd_ts = atoi(argv[1]);
-	fd_fs = atoi(argv[2]);
-	
+	fd_fs = atoi(argv[1]);
+	fd_ts = atoi(argv[2]);
 	printf("began shell with name: %s\n", name);
+	printf("fd_ts:%d\n",fd_ts);
+	printf("fd_fs:%d\n",fd_fs);
+	fd_ts = 6;
+	fd_fs = 3;
+	printf("fd_ts:%d\n",fd_ts);
+	printf("fd_fs:%d\n",fd_fs);
 
 	/* Fork a child to read from the pipe continuously */
 	childpid = fork() ;

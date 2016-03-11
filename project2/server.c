@@ -352,7 +352,11 @@ int main(int argc, char **argv)
 		//int write = fd_fshell[1];
 		//int read = fd_tshell[0];
 		printf("i am child, attempting to start shell\n");
-		execl("./shell", "Server", server.ctop, server.ptoc, NULL);
+		printf("server.ptoc[0]:%d\n",server.ptoc[0]);
+		printf("server.ptoc[1]:%d\n",server.ptoc[1]);
+		printf("server.ctop[0]:%d\n",server.ctop[0]);
+		printf("server.ctop[1]:%d\n",server.ctop[1]);
+		execl("./shell", "Server", server.ptoc,server.ctop, NULL);
 	}
 	else if (childpid > 0) {
 		//exec shell program
@@ -380,15 +384,14 @@ int main(int argc, char **argv)
 		 	 * 			EXIT
 		 	 * 			BROADCAST 
 		 	 */
-			
-			//read fd2[0] (server shell to program), put the result in command
-			printf("before read\n");
-			read(server.ctop[0], command, MSG_SIZE);//maybe check if there's nothing there?
+			read(server.ctop[0], command, MSG_SIZE);
 			printf("after read\n") ;
-			//NOT SURE IF FILE DESCRIPTOR IS CORRECT
 			printf("in server.c main loop command is: %s\n",command); 
+			printf("writing back to shell\n");
+			write(server.ptoc[1], command, (strlen(command) + 1));//write to pipe
 			//parse command
 			cmd = parse_command(command);
+			printf("cmd: %d\n", cmd);
 			
 			//switch statement
 			if(cmd == CHILD_PID){
@@ -397,20 +400,20 @@ int main(int argc, char **argv)
 				
 			}else if(cmd == LIST_USERS){
 				
-				//PROBABLY NOT RIGHT FILE DESCRIPTOR
+				printf("list users\n");
 				if(list_users(users,server.ptoc[1]) < 0)
 					//send list of users to server shell(fd1[0])???
 					perror("failed to list users");
 					
 			}else if (cmd == ADD_USER){
-				
+				printf("add user\n");
 				//user is a char array, and therefore should be treated as such
 				user1[0] = *extract_name(cmd, command) ;
 				printf("adding user, not in func") ;
 				add_user(users, user1, server.ctop[0]);//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
 				
 			}else if(cmd == KICK){
-				
+				printf("kick user\n");
 				//user is a char array, and therefore should be treated as such
 				//user1[0] = extract_name(cmd, command) ; this brings warning but is allowed
 				user1[0] = *extract_name(cmd, command) ;
@@ -424,14 +427,13 @@ int main(int argc, char **argv)
 				cleanup_user(i, users);
 				
 			}else if(cmd == EXIT){
-				
+				printf("exit server\n");
 				cleanup_server(server);
 				
 			}else{
-				
+				printf("broadcast\n");
 				//broadcast
-				broadcast_msg(users,command,server.ptoc[0],"server");//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
-				
+				broadcast_msg(users,command,server.ptoc[1],"server");//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
 			}
 
 			/* Fork a process if a user was added (ADD_USER) */
