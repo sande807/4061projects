@@ -135,8 +135,10 @@ int broadcast_msg(user_chat_box_t *users, char *buf, int fd, char *sender)
 	s = strtok(buf, "\n");
 	sprintf(text, "%s : %s", sender, s);
 	for (i = 0; i < MAX_USERS; i++) {
-		if (users[i].status == SLOT_EMPTY)
+		if (users[i].status == SLOT_EMPTY){
+			printf("user slot empty\n");
 			continue;
+		}
 		if (write(users[i].ptoc[1], text, strlen(text) + 1) < 0)
 			perror("write to child shell failed");
 	}
@@ -287,8 +289,11 @@ int main(int argc, char **argv)
 	char user1[MSG_SIZE];//a place to put a users name
 	char user2[MSG_SIZE];//a place for another user (p2p)
 	int cmd, i;//int version of command for parsing. also i.
-	int usercount = 0;//user count cause this is easier
+
 	user_chat_box_t users[MAX_USERS];//an array of users
+	for (i = 0; i < MAX_USERS; i++) {
+		users[i].status = SLOT_EMPTY;
+	}
 	server_ctrl_t server;
 
 	//pipe arrays
