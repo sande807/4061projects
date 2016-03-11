@@ -37,7 +37,6 @@ int sh_handle_input(char *line, int fd_toserver)
 	//otherwise send input to server.c for processing
 	write(fd_toserver, line, (strlen(line) + 1));
 	printf("sent to server\n") ;
-	/* Write message to server for processing */
 	return 1;
 }
 
@@ -99,10 +98,6 @@ int main(int argc, char **argv)
 	fd_fs = atoi(argv[1]);
 	fd_ts = atoi(argv[2]);
 	printf("began shell with name: %s\n", name);
-	printf("fd_ts:%d\n",fd_ts);
-	printf("fd_fs:%d\n",fd_fs);
-	fd_ts = 6;
-	fd_fs = 3;
 	printf("fd_ts:%d\n",fd_ts);
 	printf("fd_fs:%d\n",fd_fs);
 

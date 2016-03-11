@@ -44,31 +44,24 @@ int list_users(user_chat_box_t *users, int fd)
 	 */
 	 
 	/***** Insert YOUR code *******/
-	 
 	int i ;
+	int x=0;
 	for (i = 0; i < MAX_USERS; i++) {
 		//go through all the users
 		
 		//if a slot is empty ignore it
-		if (users[i].status == SLOT_EMPTY)
+		if (users[i].status == SLOT_EMPTY){
 			continue;
-			
-		//otherwise write the name of that user to the file descriptor given
-		if (write(fd, users[i].name, strlen(users[i].name) + 1) < 0) {
+		}else{
+			x++;
+			if (write(fd, users[i].name, strlen(users[i].name) + 1) < 0) {
 			//if it's -1 write some error
-			/* i think we are supposed to write an error message to screen
-			 * instead of sending an error that would kill the entire 
-			 * process.
-			 *
-			perror("write to child shell failed");
-			*/
 			fprintf(stderr, "Unable to list users.\n");
-			
-			/* or do we simply say there are no useres to list and do
-			 * the following
-			frpintf(stderr, "<no users>\n") ;
-			*/	
+			}
 		}
+	}
+	if(x==0){
+		write(fd, "no users\n", strlen("no users\n") +1);
 	}
 }
 
@@ -90,30 +83,40 @@ int add_user(user_chat_box_t *users, char *buf, int server_fd)
 	 */
 
 	int i ;
-	int flags ;
+	int flag_t;
+	int flag_f;
 	
 	char *msg = "Adding user " ;
 	char *s = strtok(buf, "\n") ;
 	
 	for (i = 0; i < MAX_USERS; i++) {
 		
-		if (users[i].status == SLOT_FULL)
+		if (users[i].status == SLOT_FULL){
 			continue ;
-			
-		printf("adding user") ;
+		}else{
+			printf("adding user") ;
 		
-		//set user name	
-		strcpy(users[i].name, s) ;
+			//set user name	
+			strcpy(users[i].name, s) ;
 		
-		//set up non-blocking pipes
-		flags = fcntl (server_fd, F_GETFL, 0) ; //not sure what fd should be
-		fcntl (users[i].ptoc[0], F_SETFL, flags | O_NONBLOCK); 
+			//set up non-blocking pipes
+			if (pipe(users[i].ptoc) == -1 || pipe(users[i].ctop) == -1) {
+				//pipe fails
+				perror("Failed to create the pipe.") ;
+			}	
+
+			//make pipes non blocking
+			flag_t = fcntl(* users[i].ptoc, F_GETFL, 0);
+			fcntl(users[i].ptoc[0], F_SETFL, flag_t | O_NONBLOCK);
+			flag_f = fcntl(* users[i].ctop, F_GETFL, 0);
+			fcntl(users[i].ctop[1], F_SETFL, flag_f | O_NONBLOCK);
+
+			//notify on server shell
+			if (write(server_fd, strcat(msg, s), strlen(msg) + 1) < 0)
+				perror("writing to server shell");
 		
-		//notify on server shell
-		if (write(server_fd, strcat(msg, s), strlen(msg) + 1) < 0)
-			perror("writing to server shell") ;
-		
-		break;		
+			break;
+		}
 	}
 	
 }
@@ -228,7 +231,6 @@ int find_user_index(user_chat_box_t *users, char *name)
 			break;
 		}
 	}
-
 	return user_idx;
 }
 
@@ -286,117 +288,80 @@ int main(int argc, char **argv)
 	printf("starting\n");
 	/***** Insert YOUR code *******/
 	char command[MSG_SIZE];//a place to put the incoming command
-	char user1[MSG_SIZE];//a place to put a users name
-	char user2[MSG_SIZE];//a place for another user (p2p)
+	char *user1;//a place to put a users name
+	char *user2;//a place for another user (p2p)
+	char readint[MSG_SIZE];//create read character for converting ints for argv
+	char writeint[MSG_SIZE];//create write character for converting ints for argv
 	int cmd, i;//int version of command for parsing. also i.
 
 	user_chat_box_t users[MAX_USERS];//an array of users
+	//make all users empty
 	for (i = 0; i < MAX_USERS; i++) {
 		users[i].status = SLOT_EMPTY;
 	}
+	//create server structure
 	server_ctrl_t server;
 
-	//pipe arrays
-	//int fd_tshell[2] ;//server.c to server shell
-	//int fd_fshell[2] ;//server shell to server.c
-	
 	int flag_t ;
 	int flag_f ;
 	
 	//child pid for fork
 	pid_t childpid ;
-	
-	/* open non-blocking bi-directional pipes for communication with server shell */
-	
-	//code for making pipes non-blocking
-	//int flags ;
-	//flags = fcntl (fd, F_GETFL, 0) ; not sure what fd should be
-	//fcntl (fd1[0], F_SETFL, flags | O_NONBLOCK);
-	//fcntl (fd2[0], F_SETFL, flags | O_NONBLOCK);
 
 
-	
+	//open pipes
 	if (pipe(server.ptoc) == -1 || pipe(server.ctop) == -1) {
 		//pipe fails
 		perror("Failed to create the pipe.") ;
 		return 1 ;
 	}
-	
+
+	//make pipes non blocking
 	flag_t = fcntl(* server.ptoc, F_GETFL, 0) ;
 	fcntl(server.ptoc[0], F_SETFL, flag_t | O_NONBLOCK) ;
 	flag_f = fcntl(* server.ctop, F_GETFL, 0) ;
 	fcntl(server.ctop[1], F_SETFL, flag_f | O_NONBLOCK) ;
-	
-	
-	
-	
-	printf("create pipe done\n");
+
 	/* Fork the server shell */
-	printf("fork now\n");
 	childpid = fork() ;
+
+	//fork fails
 	if (childpid == -1) {
-		//fork fails
 		perror("Failed to fork.") ;
 		return 1 ;
 	}
-		/* 
-	 	 * Inside the child.
-		 * Start server's shell.
-	 	 * exec the SHELL program with the required program arguments.
-	 	 */
-	
-	/* pipes need to be passed to the server SHELL process as arguments
-	 * this way the SHELL knows which pipes it needs to read and wrtie on
-	 * for communicating with the server
-	 * 
-	 * the name of the server needs to be passed to the SHELL process so
-	 * it can be displayed as part of the SHELL prompt
-	 */
+
 	if (childpid == 0) {
 		//start server shell
-		//int write = fd_fshell[1];
-		//int read = fd_tshell[0];
-		printf("i am child, attempting to start shell\n");
-		printf("server.ptoc[0]:%d\n",server.ptoc[0]);
-		printf("server.ptoc[1]:%d\n",server.ptoc[1]);
-		printf("server.ctop[0]:%d\n",server.ctop[0]);
-		printf("server.ctop[1]:%d\n",server.ctop[1]);
-		execl("./shell", "Server", server.ptoc,server.ctop, NULL);
-	}
-	else if (childpid > 0) {
-		//exec shell program
-		printf("parent process, continuing to server program\n");
-		//execl(XTERM_PATH, XTERM, "+hold","-e","./shell","user1", NULL);
-	//}
-	/* Inside the parent. This will be the most important part of this program. */
+		//printf("i am child, attempting to start shell\n");
+		//printf("server.ptoc[0]:%d\n",server.ptoc[0]);
+		//printf("server.ptoc[1]:%d\n",server.ptoc[1]);
+		//printf("server.ctop[0]:%d\n",server.ctop[0]);
+		//printf("server.ctop[1]:%d\n",server.ctop[1]);
 
+		sprintf(readint,"%d", server.ptoc[0]);//turn server.ptoc[0] to the read character for argv
+		sprintf(writeint, "%d" , server.ctop[1]);//turn server.ctop[1] to the write chracter for argv
+
+		execl("./shell", "Server", readint, writeint, NULL);//execute shell program, pass in servername, read, and write fds
+	}else if (childpid > 0) {
+		//begin server program
+		//execl(XTERM_PATH, XTERM, "+hold","-e","./shell","user1", NULL);
+
+		/* Inside the parent. This will be the most important part of this program. */
 		/* Start a loop which runs every 1000 usecs.
 	 	 * The loop should read messages from the server shell, parse them using the 
 	 	 * parse_command() function and take the appropriate actions. */
+
 		printf("starting server.c loop\n");
 		while (1) {
 			/* Let the CPU breathe */
 			usleep(1000);
-			/* 
-		 	 * 1. Read the message from server's shell, if any
-		 	 * 2. Parse the command
-		 	 * 3. Begin switch statement to identify command and take appropriate action
-		 	 * 		List of commands to handle here:
-		 	 * 			CHILD_PID
-		 	 * 			LIST_USERS
-		 	 * 			ADD_USER
-		 	 * 			KICK
-		 	 * 			EXIT
-		 	 * 			BROADCAST 
-		 	 */
+			//read the server shell, put result in command
 			read(server.ctop[0], command, MSG_SIZE);
-			printf("after read\n") ;
+
 			printf("in server.c main loop command is: %s\n",command); 
-			printf("writing back to shell\n");
-			write(server.ptoc[1], command, (strlen(command) + 1));//write to pipe
 			//parse command
 			cmd = parse_command(command);
-			printf("cmd: %d\n", cmd);
 			
 			//switch statement
 			if(cmd == CHILD_PID){
@@ -405,23 +370,23 @@ int main(int argc, char **argv)
 				
 			}else if(cmd == LIST_USERS){
 				
-				printf("list users\n");
-				if(list_users(users,server.ptoc[1]) < 0)
-					//send list of users to server shell(fd1[0])???
+				printf("list users command found\n");
+				if(list_users(users,server.ptoc[1]) < 0){
 					perror("failed to list users");
-					
+				}
+				printf("list users command done\n");
+
 			}else if (cmd == ADD_USER){
-				printf("add user\n");
-				//user is a char array, and therefore should be treated as such
-				user1[0] = *extract_name(cmd, command) ;
-				printf("adding user, not in func") ;
+				printf("add user command found\n");
+
+				user1 = extract_name(cmd, command);
+				
 				add_user(users, user1, server.ctop[0]);//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
 				
 			}else if(cmd == KICK){
 				printf("kick user\n");
-				//user is a char array, and therefore should be treated as such
-				//user1[0] = extract_name(cmd, command) ; this brings warning but is allowed
-				user1[0] = *extract_name(cmd, command) ;
+				
+				user1 = extract_name(cmd, command) ;
 				
 				i=find_user_index(users, user1);
 				
@@ -432,13 +397,15 @@ int main(int argc, char **argv)
 				cleanup_user(i, users);
 				
 			}else if(cmd == EXIT){
+
 				printf("exit server\n");
 				cleanup_server(server);
 				
 			}else{
+
 				printf("broadcast\n");
-				//broadcast
-				broadcast_msg(users,command,server.ptoc[1],"server");//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
+				
+				broadcast_msg(users,command,server.ptoc[1],"server");
 			}
 
 			/* Fork a process if a user was added (ADD_USER) */
@@ -457,13 +424,12 @@ int main(int argc, char **argv)
 
 				if (childpid == 0) {//if it's the child process open an xterm window and run ./shell and pass in some arguments
 					printf("child program\n");
-					execl(XTERM_PATH, XTERM, "+hold","-e","./shell","username", NULL);
+					sprintf(readint,"%d", users[i].ptoc[0]);//turn server.ptoc[0] to the read character for argv
+					sprintf(writeint, "%d" , users[i].ctop[1]);//turn server.ctop[1] to the write chracter for argv
+					execl(XTERM_PATH, XTERM, "+hold","-e","./shell","username",readint,writeint, NULL);
 				}
 				else if (childpid > 0) {
-					//exec shell program?
-					wait();
-					printf("parent program\n");
-					printf("done\n");	
+					//not sure what to do in here
 				}
 			}
 			/* Back to our main while loop for the "parent" */
