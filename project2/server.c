@@ -292,8 +292,8 @@ int main(int argc, char **argv)
 	server_ctrl_t server;
 
 	//pipe arrays
-	int fd_tshell[2] ;//server.c to server shell
-	int fd_fshell[2] ;//server shell to server.c
+	//int fd_tshell[2] ;//server.c to server shell
+	//int fd_fshell[2] ;//server shell to server.c
 	
 	int flag_t ;
 	int flag_f ;
@@ -311,16 +311,16 @@ int main(int argc, char **argv)
 
 
 	
-	if (pipe(fd_tshell) == -1 || pipe(fd_fshell) == -1) {
+	if (pipe(server.ptoc) == -1 || pipe(server.ctop) == -1) {
 		//pipe fails
 		perror("Failed to create the pipe.") ;
 		return 1 ;
 	}
 	
-	flag_t = fcntl(* fd_tshell, F_GETFL, 0) ;
-	fcntl(fd_tshell[0], F_SETFL, flag_t | O_NONBLOCK) ;
-	flag_f = fcntl(* fd_fshell, F_GETFL, 0) ;
-	fcntl(fd_fshell[0], F_SETFL, flag_f | O_NONBLOCK) ;
+	flag_t = fcntl(* server.ptoc, F_GETFL, 0) ;
+	fcntl(server.ptoc[0], F_SETFL, flag_t | O_NONBLOCK) ;
+	flag_f = fcntl(* server.ctop, F_GETFL, 0) ;
+	fcntl(server.ctop[1], F_SETFL, flag_f | O_NONBLOCK) ;
 	
 	
 	
@@ -352,7 +352,7 @@ int main(int argc, char **argv)
 		//int write = fd_fshell[1];
 		//int read = fd_tshell[0];
 		printf("i am child, attempting to start shell\n");
-		execl("./shell", "Server", fd_fshell, fd_tshell, NULL);
+		execl("./shell", "Server", server.ctop, server.ptoc, NULL);
 	}
 	else if (childpid > 0) {
 		//exec shell program
@@ -383,7 +383,7 @@ int main(int argc, char **argv)
 			
 			//read fd2[0] (server shell to program), put the result in command
 			printf("before read\n");
-			read(fd_fshell[0], command, MSG_SIZE);//maybe check if there's nothing there?
+			read(server.ctop[0], command, MSG_SIZE);//maybe check if there's nothing there?
 			printf("after read\n") ;
 			//NOT SURE IF FILE DESCRIPTOR IS CORRECT
 			printf("in server.c main loop command is: %s\n",command); 
@@ -398,7 +398,7 @@ int main(int argc, char **argv)
 			}else if(cmd == LIST_USERS){
 				
 				//PROBABLY NOT RIGHT FILE DESCRIPTOR
-				if(list_users(users,fd_tshell[1]) < 0)
+				if(list_users(users,server.ptoc[1]) < 0)
 					//send list of users to server shell(fd1[0])???
 					perror("failed to list users");
 					
@@ -407,7 +407,7 @@ int main(int argc, char **argv)
 				//user is a char array, and therefore should be treated as such
 				user1[0] = *extract_name(cmd, command) ;
 				printf("adding user, not in func") ;
-				add_user(users, user1, fd_fshell[0]);//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
+				add_user(users, user1, server.ctop[0]);//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
 				
 			}else if(cmd == KICK){
 				
@@ -430,7 +430,7 @@ int main(int argc, char **argv)
 			}else{
 				
 				//broadcast
-				broadcast_msg(users,command,fd_tshell[0],"server");//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
+				broadcast_msg(users,command,server.ptoc[0],"server");//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
 				
 			}
 
@@ -503,7 +503,7 @@ int main(int argc, char **argv)
 				}else if(cmd == LIST_USERS){
 					
 					//PROBABLY NOT RIGHT FILE DESCRIPTOR
-					if(list_users(users,fd_tshell[1])<0)//send list of users to server shell(fd1[0])???
+					if(list_users(users,server.ptoc[1])<0)//send list of users to server shell(fd1[0])???
 						perror("failed to list users");
 						
 				}else if (cmd == P2P){
@@ -517,7 +517,7 @@ int main(int argc, char **argv)
 				}else{
 					
 					//broadcast
-					broadcast_msg(users,command,fd_tshell[1],"server");//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
+					broadcast_msg(users,command,server.ptoc[1],"server");//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
 					
 				}
 			}
