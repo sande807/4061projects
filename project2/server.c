@@ -77,6 +77,7 @@ int list_users(user_chat_box_t *users, int fd)
  */
 int add_user(user_chat_box_t *users, char *buf, int server_fd)
 {
+	printf("in user loop!\n") ;
 	/***** Insert YOUR code *******/
 	
 	/* 
@@ -88,8 +89,41 @@ int add_user(user_chat_box_t *users, char *buf, int server_fd)
 	 * NOTE: You may want to remove any newline characters from the name string 
 	 * before adding it. This will help in future name-based search.
 	 */
+	 
+	int i = 0 ;
+	int flags ;
+	
+	char * msg = "Adding user " ;
+	char * s = buf ;
+	
+	printf("name = %s\n", s) ;
+	
+	while (i < MAX_USERS) {
+		if (users[i].status == SLOT_FULL) {
+			printf("cannot add user: slot full\n") ;
+			continue ;
+		}
+		else {
+			printf("empty slot! time to add!\n") ;
+			
+			users[i].status = SLOT_FULL ;
+			strcpy(users[i].name, s) ;
+			
+			//set up non-blocking pipes
+			flags = fcntl (* users[i].ptoc , F_GETFL, 0) ; //not sure what fd should be
+			fcntl (users[i].ptoc[0], F_SETFL, flags | O_NONBLOCK); 
+			
+			printf("user %s added!\n", users[i].name) ;
+			
+			if (write(users[i].ptoc[1], s, strlen(s) + 1) < 0) {
+				perror("writing to server shell failed") ;
+			}
+			break ;
+		}
+	}
+			
 
-	int i ;
+	/*int i ;
 	int flags ;
 	
 	char *msg = "Adding user " ;
@@ -97,24 +131,30 @@ int add_user(user_chat_box_t *users, char *buf, int server_fd)
 	
 	for (i = 0; i < MAX_USERS; i++) {
 		
-		if (users[i].status == SLOT_FULL)
+		if (users[i].status == SLOT_FULL) {
+			printf("cannot add user: slot full\n") ;
 			continue ;
+		}
 			
-		printf("adding user") ;
+		printf("adding user\n") ;
 		
 		//set user name	
 		strcpy(users[i].name, s) ;
 		
 		//set up non-blocking pipes
 		flags = fcntl (server_fd, F_GETFL, 0) ; //not sure what fd should be
-		fcntl (users[i].ptoc[0], F_SETFL, flags | O_NONBLOCK); 
+		fcntl (users[i].ptoc[1], F_SETFL, flags | O_NONBLOCK); 
 		
 		//notify on server shell
-		if (write(server_fd, strcat(msg, s), strlen(msg) + 1) < 0)
+		if (write(server_fd, strcat(msg, s), strlen(msg) + 1) < 0) {
 			perror("writing to server shell") ;
+		}
+			
 		
-		break;		
+		break;
 	}
+	printf("user added!\n") ;
+	*/
 	
 }
 
@@ -313,8 +353,6 @@ int main(int argc, char **argv)
 	//flags = fcntl (fd, F_GETFL, 0) ; not sure what fd should be
 	//fcntl (fd1[0], F_SETFL, flags | O_NONBLOCK);
 	//fcntl (fd2[0], F_SETFL, flags | O_NONBLOCK);
-
-
 	
 	if (pipe(server.ptoc) == -1 || pipe(server.ctop) == -1) {
 		//pipe fails
@@ -326,9 +364,6 @@ int main(int argc, char **argv)
 	fcntl(server.ptoc[0], F_SETFL, flag_t | O_NONBLOCK) ;
 	flag_f = fcntl(* server.ctop, F_GETFL, 0) ;
 	fcntl(server.ctop[1], F_SETFL, flag_f | O_NONBLOCK) ;
-	
-	
-	
 	
 	printf("create pipe done\n");
 	/* Fork the server shell */
@@ -411,11 +446,12 @@ int main(int argc, char **argv)
 					perror("failed to list users");
 					
 			}else if (cmd == ADD_USER){
-				printf("add user\n");
+				printf("add user loop\n");
 				//user is a char array, and therefore should be treated as such
 				user1[0] = *extract_name(cmd, command) ;
-				printf("adding user, not in func") ;
+				printf("adding user, not in func\n") ;
 				add_user(users, user1, server.ctop[0]);//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
+				
 				
 			}else if(cmd == KICK){
 				printf("kick user\n");
@@ -439,6 +475,7 @@ int main(int argc, char **argv)
 				printf("broadcast\n");
 				//broadcast
 				broadcast_msg(users,command,server.ptoc[1],"server");//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
+				printf("after broadcast\n") ;
 			}
 
 			/* Fork a process if a user was added (ADD_USER) */
@@ -448,14 +485,14 @@ int main(int argc, char **argv)
 			 	 * execl(XTERM_PATH, XTERM, "+hold", "-e", <path for the SHELL program>, ..<rest of the arguments for the shell program>..);
 			 	 */
 			if(cmd == ADD_USER){
+				printf("entering adduser loop\n") ;
 				childpid = fork();
 				if (childpid == -1) {
 					//fork fails
 					perror("Failed to fork.") ;
 					return 1 ;
 				}
-
-				if (childpid == 0) {//if it's the child process open an xterm window and run ./shell and pass in some arguments
+				else if (childpid == 0) {//if it's the child process open an xterm window and run ./shell and pass in some arguments
 					printf("child program\n");
 					execl(XTERM_PATH, XTERM, "+hold","-e","./shell","username", NULL);
 				}
@@ -524,7 +561,7 @@ int main(int argc, char **argv)
 				}else{
 					
 					//broadcast
-					broadcast_msg(users,command,server.ptoc[1],"server");//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
+					broadcast_msg(users,command,server.ptoc[1],"Server");//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
 					
 				}
 			}
