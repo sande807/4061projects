@@ -70,7 +70,7 @@ int list_users(user_chat_box_t *users, int fd)
  */
 int add_user(user_chat_box_t *users, char *buf, int server_fd)
 {
-	printf("in user loop!\n") ;
+	printf("in add user function\n") ;
 	/***** Insert YOUR code *******/
 	
 	/* 
@@ -103,6 +103,12 @@ int add_user(user_chat_box_t *users, char *buf, int server_fd)
 			users[i].status = SLOT_FULL ;
 			strcpy(users[i].name, s) ;
 			
+			if (pipe(users[i].ptoc) == -1 || pipe(users[i].ctop) == -1) {
+				//pipe fails
+				perror("Failed to create the pipe.");
+				return 1 ;
+			}
+
 			//set up non-blocking pipes
 			flag_t = fcntl (* users[i].ptoc , F_GETFL, 0) ; //not sure what fd should be
 			fcntl (users[i].ptoc[0], F_SETFL, flag_t | O_NONBLOCK); 
@@ -113,10 +119,10 @@ int add_user(user_chat_box_t *users, char *buf, int server_fd)
 			if (write(users[i].ptoc[1], s, strlen(s) + 1) < 0) {
 				perror("writing to server shell failed") ;
 			}
-			break ;
+			return i;
 		}
 	}
-	printf("user added!\n") ;
+	return -1;
 	
 }
 
@@ -291,7 +297,7 @@ int main(int argc, char **argv)
 	char *user2;//a place for another user (p2p)
 	char readint[MSG_SIZE];//create read character for converting ints for argv
 	char writeint[MSG_SIZE];//create write character for converting ints for argv
-	int cmd, i;//int version of command for parsing. also i.
+	int cmd, i, newuserindex;//int version of command for parsing. also i.
 
 	user_chat_box_t users[MAX_USERS];//an array of users
 	//make all users empty
@@ -311,7 +317,7 @@ int main(int argc, char **argv)
 
 	if (pipe(server.ptoc) == -1 || pipe(server.ctop) == -1) {
 		//pipe fails
-		perror("Failed to create the pipe.") ;
+		perror("Failed to create the pipe.");
 		return 1 ;
 	}
 
@@ -341,7 +347,7 @@ int main(int argc, char **argv)
 		sprintf(readint,"%d", server.ptoc[0]);//turn server.ptoc[0] to the read character for argv
 		sprintf(writeint, "%d" , server.ctop[1]);//turn server.ctop[1] to the write chracter for argv
 
-		execl("./shell", "Server", readint, writeint, NULL);//execute shell program, pass in servername, read, and write fds
+		execl("./shell", "empty","Server", readint, writeint, NULL);//execute shell program, pass in servername, read, and write fds
 	}else if (childpid > 0) {
 		//begin server program
 		//execl(XTERM_PATH, XTERM, "+hold","-e","./shell","user1", NULL);
@@ -381,8 +387,8 @@ int main(int argc, char **argv)
 
 				user1 = extract_name(cmd, command);
 
-				add_user(users, user1, server.ctop[0]);//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
-				
+				newuserindex = add_user(users, user1, server.ctop[0]);//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
+				printf("newuserindex:%d\n",newuserindex);
 				
 			}else if(cmd == KICK){
 				printf("kick user\n");
@@ -416,7 +422,7 @@ int main(int argc, char **argv)
 			 	 * execl(XTERM_PATH, XTERM, "+hold", "-e", <path for the SHELL program>, ..<rest of the arguments for the shell program>..);
 			 	 */
 			if(cmd == ADD_USER){
-				printf("entering adduser loop\n") ;
+				printf("next is to fork using execl xterm\n") ;
 				childpid = fork();
 				if (childpid == -1) {
 					//fork fails
@@ -425,9 +431,13 @@ int main(int argc, char **argv)
 				}
 				else if (childpid == 0) {//if it's the child process open an xterm window and run ./shell and pass in some arguments
 					printf("child program\n");
-					sprintf(readint,"%d", users[i].ptoc[0]);//turn server.ptoc[0] to the read character for argv
-					sprintf(writeint, "%d" , users[i].ctop[1]);//turn server.ctop[1] to the write chracter for argv
-					execl(XTERM_PATH, XTERM, "+hold","-e","./shell","username",readint,writeint, NULL);
+					sprintf(readint,"%d", users[newuserindex].ptoc[0]);//turn server.ptoc[0] to the read character for argv
+					printf("readint:%s\n",readint);
+					printf("users.ptoc[0]=%d\n",users[newuserindex].ptoc[0]);
+					sprintf(writeint, "%d" , users[newuserindex].ctop[1]);//turn server.ctop[1] to the write chracter for argv
+					printf("writeint:%s\n",writeint);
+					printf("users.ctop[1]=%d\n",users[newuserindex].ctop[1]);
+					execl(XTERM_PATH, XTERM, "+hold","-e","./shell",users[newuserindex].name,readint,writeint, NULL);
 				}
 				else if (childpid > 0) {
 					//not sure what to do in here

@@ -92,11 +92,11 @@ int main(int argc, char **argv)
 	char * name ;
 	
 	//extract name from argv
-	name = argv[0] ;
+	name = argv[1] ;
 	
 	//extract pipe descriptors from argv
-	fd_fs = atoi(argv[1]);
-	fd_ts = atoi(argv[2]);
+	fd_fs = atoi(argv[2]);
+	fd_ts = atoi(argv[3]);
 	printf("began shell with name: %s\n", name);
 	printf("fd_ts:%d\n",fd_ts);
 	printf("fd_fs:%d\n",fd_fs);
