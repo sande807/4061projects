@@ -95,7 +95,7 @@ int add_user(user_chat_box_t *users, char *buf, int server_fd)
 	while (i < MAX_USERS) {
 		if (users[i].status == SLOT_FULL) {
 			printf("cannot add user: slot full\n") ;
-			continue ;
+			i++;
 		}
 		else {
 			printf("empty slot! time to add!\n") ;
