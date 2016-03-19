@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <sys/types.h>
 #include <signal.h>
 #include "util.h"
 
@@ -25,6 +29,11 @@ int sh_handle_input(char *line, int fd_toserver)
 	
 	/***** Insert YOUR code *******/
 	printf("handling input\n");
+	
+	int flag_ts ;
+	
+	//flag_ts = fcntl (fd_toserver , F_GETFL, 0) ; //not sure what fd should be
+	//fcntl (fd_toserver, F_SETFL, flag_ts | O_NONBLOCK);
 	//look for \seg command
 	
 	if(starts_with(line, CMD_SEG)){
@@ -59,6 +68,11 @@ int is_empty(char *line)
 void sh_start(char *name, int fd_toserver)
 {
 	/***** Insert YOUR code *******/
+	int flag_ts ;
+	
+	//flag_ts = fcntl (fd_toserver , F_GETFL, 0) ; //not sure what fd should be
+	//fcntl (fd_toserver, F_SETFL, flag_ts | O_NONBLOCK);
+	
 	print_prompt(name);
 	char *input = NULL;
 	input = (char *)malloc(MSG_SIZE);
@@ -86,6 +100,9 @@ int main(int argc, char **argv)
 	int fd_ts;
 	int fd_fs;
 	
+	int flag_t ;
+	int flag_f ;
+	
 	//child pid for fork
 	pid_t childpid;
 	
@@ -97,6 +114,12 @@ int main(int argc, char **argv)
 	//extract pipe descriptors from argv
 	fd_fs = atoi(argv[2]);
 	fd_ts = atoi(argv[3]);
+	
+	/*flag_t = fcntl (fd_ts , F_GETFL, 0) ; //not sure what fd should be
+	fcntl (fd_ts, F_SETFL, flag_t | O_NONBLOCK); 
+	flag_f = fcntl(fd_fs, F_GETFL, 0);
+	fcntl(fd_fs, F_SETFL, flag_f | O_NONBLOCK);*/
+	
 	printf("began shell with name: %s\n", name);
 	printf("fd_ts:%d\n",fd_ts);
 	printf("fd_fs:%d\n",fd_fs);
