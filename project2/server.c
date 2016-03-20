@@ -113,7 +113,8 @@ int add_user(user_chat_box_t *users, char *buf, int server_fd)
 			flag_t = fcntl (* users[i].ptoc , F_GETFL, 0) ; //not sure what fd should be
 			fcntl (users[i].ptoc[0], F_SETFL, flag_t | O_NONBLOCK); 
 			flag_f = fcntl(* users[i].ctop, F_GETFL, 0);
-			fcntl(users[i].ctop[1], F_SETFL, flag_f | O_NONBLOCK);
+			fcntl(users[i].ctop[0], F_SETFL, flag_f | O_NONBLOCK);
+			
 			printf("user %s added!\n", users[i].name) ;
 			
 			if (write(users[i].ptoc[1], s, strlen(s) + 1) < 0) {
@@ -136,15 +137,20 @@ int broadcast_msg(user_chat_box_t *users, char *buf, int fd, char *sender)
 	char text[MSG_SIZE];
 
 	/* Notify on server shell */
-	if (write(fd, msg, strlen(msg) + 1) < 0)
+	if (write(fd, msg, strlen(msg) + 1) < 0){
 		perror("writing to server shell");
+	}else{
+		//printf("within broadcast, write works\n");
+	}
+
 	
 	/* Send the message to all user shells */
 	s = strtok(buf, "\n");
 	sprintf(text, "%s : %s", sender, s);
+	usleep(100);
+	write(fd, text, strlen(text) + 1);
 	for (i = 0; i < MAX_USERS; i++) {
 		if (users[i].status == SLOT_EMPTY){
-			printf("user slot empty\n");
 			continue;
 		}
 		if (write(users[i].ptoc[1], text, strlen(text) + 1) < 0)
@@ -322,10 +328,10 @@ int main(int argc, char **argv)
 	}
 
 	//make pipes non blocking
-	flag_t = fcntl(* server.ptoc, F_GETFL, 0) ;
-	fcntl(server.ptoc[0], F_SETFL, flag_t | O_NONBLOCK) ;
-	flag_f = fcntl(* server.ctop, F_GETFL, 0) ;
-	fcntl(server.ctop[1], F_SETFL, flag_f | O_NONBLOCK) ;
+	//flag_t = fcntl(* server.ptoc, F_GETFL, 0) ;
+	//fcntl(server.ptoc[0], F_SETFL, flag_t || O_NONBLOCK) ;
+	//flag_f = fcntl(* server.ctop, F_GETFL, 0) ;
+	//fcntl(server.ctop[0], F_SETFL, flag_f || O_NONBLOCK) ;
 
 	/* Fork the server shell */
 	childpid = fork() ;
@@ -371,7 +377,9 @@ int main(int argc, char **argv)
 			//switch statement
 			if(cmd == CHILD_PID){
 				
-				//no idea what this one does
+				//this is for when a new shell is created, we need to send the childpid back to
+				//the server and the server should store it in the new users childpid category so
+				//the server can later clean everything up.
 				
 			}else if(cmd == LIST_USERS){
 				
@@ -408,11 +416,8 @@ int main(int argc, char **argv)
 				printf("exit server\n");
 				cleanup_server(server);
 				
-			}else{
-
-				printf("broadcast\n");			
-				broadcast_msg(users,command,server.ptoc[1],"server");
-
+			}else{			
+				broadcast_msg(users,command,server.ptoc[1],"Server");
 			}
 
 			/* Fork a process if a user was added (ADD_USER) */
@@ -440,7 +445,7 @@ int main(int argc, char **argv)
 					execl(XTERM_PATH, XTERM, "+hold","-e","./shell",users[newuserindex].name,readint,writeint, NULL);
 				}
 				else if (childpid > 0) {
-					//not sure what to do in here
+					continue;
 				}
 			}
 			/* Back to our main while loop for the "parent" */
@@ -486,8 +491,7 @@ int main(int argc, char **argv)
 					
 				}else if(cmd == LIST_USERS){
 					
-					//PROBABLY NOT RIGHT FILE DESCRIPTOR
-					if(list_users(users,server.ptoc[1])<0)//send list of users to server shell(fd1[0])???
+					if(list_users(users, users[i].ctop[1])<0)//send list of users to user shell
 						perror("failed to list users");
 						
 				}else if (cmd == P2P){

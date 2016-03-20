@@ -79,11 +79,14 @@ void sh_start(char *name, int fd_toserver)
 	while(1){
 		input = sh_read_line();
 		if(is_empty(input)){//if empty reprint the prompt
+			usleep(1000);
 			print_prompt(name);
 		}else{//otherwise send line to be handled, then reprint prompt line
 			printf("about to handle input\n") ;
 			sh_handle_input(input, fd_toserver);
-			printf("input handled, printing shell name\n") ;
+			printf("sent to server, waiting\n");
+			usleep(1000);
+			printf("input handled, printing shell name\n");
 			print_prompt(name);
 		}
 	}
@@ -115,11 +118,6 @@ int main(int argc, char **argv)
 	fd_fs = atoi(argv[2]);
 	fd_ts = atoi(argv[3]);
 	
-	/*flag_t = fcntl (fd_ts , F_GETFL, 0) ; //not sure what fd should be
-	fcntl (fd_ts, F_SETFL, flag_t | O_NONBLOCK); 
-	flag_f = fcntl(fd_fs, F_GETFL, 0);
-	fcntl(fd_fs, F_SETFL, flag_f | O_NONBLOCK);*/
-	
 	printf("began shell with name: %s\n", name);
 	printf("fd_ts:%d\n",fd_ts);
 	printf("fd_fs:%d\n",fd_fs);
@@ -137,19 +135,20 @@ int main(int argc, char **argv)
 	 */ 
 	if (childpid == 0) {
 		printf("child of shell to check for server.c input\n");
-		char *buffer;
+		char buffer[MSG_SIZE];
 		while(1){
 			usleep(1000);
-			//inpipe = read(fd1[0], buffer, sizeof(buffer));//read pipe
 			
 			//if read < 0, reading failed, else it should work
 			//sizeof(buffer) + 1?
-			if (read(fd_fs, buffer, sizeof(buffer)) > 0) {
-				printf("read successful\n") ;
+			if (read(fd_fs, buffer, MSG_SIZE) < 0) {
+				printf("read unsuccessful\n");
 			}
-			
-			if(buffer != NULL)
-				printf("string from pipe: %s\n", buffer);//print buffer
+			if(buffer == NULL){
+				continue;
+			}else{
+				printf("\nread from pipe: %s\n", buffer);//print buffer
+			}
 		}
 	}
 	/* Inside the parent
