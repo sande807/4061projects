@@ -142,7 +142,7 @@ int main(int argc, char **argv)
 			//if read < 0, reading failed, else it should work
 			//sizeof(buffer) + 1?
 			if (read(fd_fs, buffer, MSG_SIZE) < 0) {
-				printf("read unsuccessful\n");
+				continue ;
 			}
 			if(buffer == NULL){
 				continue;

@@ -110,10 +110,10 @@ int add_user(user_chat_box_t *users, char *buf, int server_fd)
 			}
 
 			//set up non-blocking pipes
-			flag_t = fcntl (* users[i].ptoc , F_GETFL, 0) ; //not sure what fd should be
-			fcntl (users[i].ptoc[0], F_SETFL, flag_t | O_NONBLOCK); 
-			flag_f = fcntl(* users[i].ctop, F_GETFL, 0);
-			fcntl(users[i].ctop[0], F_SETFL, flag_f | O_NONBLOCK);
+			//flag_t = fcntl (* users[i].ptoc , F_GETFL, 0) ; //not sure what fd should be
+			fcntl (users[i].ptoc[0], F_SETFL, O_NONBLOCK); 
+			//flag_f = fcntl(* users[i].ctop, F_GETFL, 0);
+			fcntl(users[i].ctop[0], F_SETFL, O_NONBLOCK);
 			
 			printf("user %s added!\n", users[i].name) ;
 			
@@ -284,6 +284,9 @@ void send_p2p_msg(int idx, user_chat_box_t *users, char *buf)
 			
 		if (strcmp(users[i].name, p) == 0) {
 			//send message
+			//if (write(users[i].ptoc[1], msg, strlen(msg) + 1) < 0) {
+			//	perror("writing to server shell");
+			//}
 			break ;
 		}
 	}
@@ -495,6 +498,7 @@ int main(int argc, char **argv)
 						perror("failed to list users");
 						
 				}else if (cmd == P2P){
+					printf("p2p\n") ;
 					
 					send_p2p_msg(i,users,command);//pass the command, then use command to find which user its supposed to go to
 					
