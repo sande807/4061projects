@@ -536,6 +536,7 @@ int main(int argc, char **argv)
 					users[i].child_pid = atoi(user1);
 					printf("pid: %d\n", users[i].pid);
 					printf("child_pid %d\n", users[i].child_pid);
+					read(users[i].ctop[0], command, MSG_SIZE);
 					
 				}else if(cmd == LIST_USERS){
 					printf("user list users");

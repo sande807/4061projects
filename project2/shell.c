@@ -106,9 +106,9 @@ int main(int argc, char **argv)
 	fd_fs = atoi(argv[2]);
 	fd_ts = atoi(argv[3]);
 	
-	printf("began shell with name: %s\n", name);
-	printf("fd_ts:%d\n",fd_ts);
-	printf("fd_fs:%d\n",fd_fs);
+	//printf("began shell with name: %s\n", name);
+	//printf("fd_ts:%d\n",fd_ts);
+	//printf("fd_fs:%d\n",fd_fs);
 
 	/* Fork a child to read from the pipe continuously */
 	childpid = fork() ;
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
 		//send child's pid to the server for cleanup
 		//SEND AS CHILD PID COMMAND
 		sprintf(pidmessage, "\\child_pid %d", childpid);
-		printf("pidmessage: %s\n", pidmessage);
+		//printf("pidmessage: %s\n", pidmessage);
 		write(fd_ts, pidmessage, sizeof(pidmessage)+1);//write to pipe
 		sh_start(name,fd_ts);
 	}
