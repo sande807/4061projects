@@ -45,18 +45,20 @@ int list_users(user_chat_box_t *users, int fd)
 	 */
 	 
 	/***** Insert YOUR code *******/
+	//printf("listing users\n") ;
 	char * noUsers = "<no users>\n" ;
 	int i ;
 	int x=0;
 	for (i = 0; i < MAX_USERS; i++) {
 		//go through all the users
-		
+		//printf("slot %d:",i);
 		//if a slot is empty ignore it
 		if (users[i].status == SLOT_EMPTY){
-			continue;
+			//printf("slot empty\n");
 		}else{
-			printf("listing users\n") ;
 			x++;
+			//printf("user %s found\n", users[i].name);
+			usleep(2000);
 			if (write(fd, users[i].name, strlen(users[i].name) + 1) < 0) {
 				//if it's -1 write some error
 				fprintf(stderr, "Unable to list users.\n");
@@ -418,11 +420,11 @@ int main(int argc, char **argv)
 					
 				}else if(cmd == LIST_USERS){
 					
-					printf("list users command found\n");
+					//printf("list users command found\n");
 					if(list_users(users,server.ptoc[1]) < 0){
 						perror("failed to list users");
 					}
-					printf("list users command done\n");
+					//printf("list users command done\n");
 	
 				}else if (cmd == ADD_USER){
 	
@@ -534,7 +536,7 @@ int main(int argc, char **argv)
 				}else if(cmd == LIST_USERS){
 					printf("user list users");
 					
-					if(list_users(users, users[i].ctop[1])<0)//send list of users to user shell
+					if(list_users(users, users[i].ptoc[1])<0)//send list of users to user shell
 						perror("failed to list users");
 						
 				}else if (cmd == P2P){
