@@ -416,7 +416,7 @@ int main(int argc, char **argv)
 					server.child_pid = atoi(user1);
 					printf("pid: %d\n", server.pid);
 					printf("child_pid %d\n", server.child_pid);
-					
+					read(server.ctop[0], command, MSG_SIZE);
 					
 				}else if(cmd == LIST_USERS){
 					
