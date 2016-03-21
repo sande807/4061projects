@@ -45,6 +45,7 @@ int list_users(user_chat_box_t *users, int fd)
 	 */
 	 
 	/***** Insert YOUR code *******/
+    char * noUsers = "<no users>\n" ;
 	int i ;
 	int x=0;
 	for (i = 0; i < MAX_USERS; i++) {
@@ -54,15 +55,16 @@ int list_users(user_chat_box_t *users, int fd)
 		if (users[i].status == SLOT_EMPTY){
 			continue;
 		}else{
+            printf("listing users\n") ;
 			x++;
 			if (write(fd, users[i].name, strlen(users[i].name) + 1) < 0) {
-			//if it's -1 write some error
-			fprintf(stderr, "Unable to list users.\n");
+                //if it's -1 write some error
+                fprintf(stderr, "Unable to list users.\n");
 			}
 		}
 	}
 	if(x==0){
-		write(fd, "no users\n", strlen("no users\n") +1);
+		write(fd, noUsers, strlen(noUsers) +1);
 	}
 }
 
@@ -115,6 +117,10 @@ int add_user(user_chat_box_t *users, char *buf, int server_fd)
 			fcntl (users[i].ptoc[0], F_SETFL, flag_t | O_NONBLOCK); 
 			flag_f = fcntl(* users[i].ctop, F_GETFL, 0);
 			fcntl(users[i].ctop[0], F_SETFL, flag_f | O_NONBLOCK);
+            
+            //fcntl(users[i].ptoc[0], F_SETFL, O_NONBLOCK) ;
+            //flag_f = fcntl(* server.ctop, F_GETFL, 0) ;
+            //fcntl(users[i].ctop[0], F_SETFL, O_NONBLOCK) ;
 			
 			//printf("user %s added!\n", users[i].name) ;
 			sprintf(s, "%s%s", msg, s);
@@ -272,10 +278,12 @@ void send_p2p_msg(int idx, user_chat_box_t *users, char *buf)
 	/***** Insert YOUR code *******/
 	
 	int i ;
+    int count ;
 	char * p = NULL;
 	char * message = NULL;
 	char msg[MSG_SIZE];
 	char command[MSG_SIZE];
+    char * error = "User not found." ;
 	
 	sprintf(command, "%s", buf);
 	//get name of desired recipient
@@ -305,11 +313,21 @@ void send_p2p_msg(int idx, user_chat_box_t *users, char *buf)
 			if (write(users[i].ptoc[1], msg, strlen(msg) + 1) < 0) {
 				perror("writing to server shell");
 			}
+            //count equals 1 if the user has been found and the message has been sent
+            count = 1 ;
 			break ;
 		}
 	}
+    printf("user doesnt exist\n") ;
 	
-	//if user doesn't exists, print error
+    //if count doesn't equal 1, the user doesn't exist
+	//if user doesn't exists, print error on user screen
+    if (count != 1) {
+        if (write(users[idx].ptoc[1], error, strlen(error) + 1) < 0) {
+            perror("no user") ;
+        }
+    }
+    
 	
 			
 	
@@ -324,7 +342,6 @@ int main(int argc, char **argv)
 	sprintf(command,"%s","\0");
 
 	char *user1;//a place to put a users name
-	char *user2;//a place for another user (p2p)
 	char readint[MSG_SIZE];//create read character for converting ints for argv
 	char writeint[MSG_SIZE];//create write character for converting ints for argv
 	int cmd, i, newuserindex;//int version of command for parsing. also i.
@@ -336,9 +353,6 @@ int main(int argc, char **argv)
 	}
 	//create server structure
 	server_ctrl_t server;
-
-	int flag_t ;
-	int flag_f ;
 	
 	//child pid for fork
 	pid_t childpid ;
@@ -352,9 +366,7 @@ int main(int argc, char **argv)
 	}
 
 	//make pipes non blocking
-	//flag_t = fcntl(* server.ptoc, F_GETFL, 0) ;
 	fcntl(server.ptoc[0], F_SETFL, O_NONBLOCK) ;
-	//flag_f = fcntl(* server.ctop, F_GETFL, 0) ;
 	fcntl(server.ctop[0], F_SETFL, O_NONBLOCK) ;
 
 	/* Fork the server shell */
@@ -519,7 +531,7 @@ int main(int argc, char **argv)
 				if(cmd == CHILD_PID){
 					
 					//no idea what this one does
-					//
+					//used for kill
 					
 				}else if(cmd == LIST_USERS){
 					printf("user list users");
