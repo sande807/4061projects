@@ -28,24 +28,20 @@ int sh_handle_input(char *line, int fd_toserver)
 {
 	
 	/***** Insert YOUR code *******/
-	printf("handling input\n");
+	//printf("handling input: %s\n", line);
 	
-	int flag_ts ;
-	
-	//flag_ts = fcntl (fd_toserver , F_GETFL, 0) ; //not sure what fd should be
-	//fcntl (fd_toserver, F_SETFL, flag_ts | O_NONBLOCK);
 	//look for \seg command
-	
 	if(starts_with(line, CMD_SEG)){
 		printf("seg fault\n");
 		char *line = NULL;
 		*line = '0';
 	}
-	printf("sending to server\n") ;
-	printf("line equals: %s\n", line) ;
+	
 	//otherwise send input to server.c for processing
+	////printf("sending to server\n");
 	write(fd_toserver, line, (strlen(line) + 1));
-	printf("sent to server\n") ;
+	
+	//printf("sent to server\n") ;
 	return 1;
 }
 
@@ -67,26 +63,27 @@ int is_empty(char *line)
  */
 void sh_start(char *name, int fd_toserver)
 {
-	/***** Insert YOUR code *******/
-	int flag_ts ;
-	
-	//flag_ts = fcntl (fd_toserver , F_GETFL, 0) ; //not sure what fd should be
-	//fcntl (fd_toserver, F_SETFL, flag_ts | O_NONBLOCK);
-	
+	/***** Insert YOUR code *******/	
 	print_prompt(name);
 	char *input = NULL;
 	input = (char *)malloc(MSG_SIZE);
 	while(1){
 		input = sh_read_line();
 		if(is_empty(input)){//if empty reprint the prompt
+		
 			usleep(1000);
+		
 			print_prompt(name);
+
 		}else{//otherwise send line to be handled, then reprint prompt line
-			printf("about to handle input\n") ;
+			
+			//printf("about to handle input\n") ;
 			sh_handle_input(input, fd_toserver);
-			printf("sent to server, waiting\n");
+
+			//printf("sent to server, waiting\n");
 			usleep(1000);
-			printf("input handled, printing shell name\n");
+
+			//printf("input handled, printing shell name\n");
 			print_prompt(name);
 		}
 	}
@@ -96,21 +93,12 @@ int main(int argc, char **argv)
 {
 	
 	/***** Insert YOUR code *******/
-	printf("started shell\n");
-	/* Extract pipe descriptors and name from argv */
-	int inpipe;
-	
-	int fd_ts;
-	int fd_fs;
-	
-	int flag_t ;
-	int flag_f ;
-	
-	//child pid for fork
-	pid_t childpid;
-	
-	char * name ;
-	
+	//printf("started shell\n");
+
+	pid_t childpid;//child pid for fork
+	char * name ;//name holder for name of shell
+	int fd_ts, fd_fs;//fd to the pipes that go to the server and come from the server
+
 	//extract name from argv
 	name = argv[1] ;
 	
@@ -134,7 +122,7 @@ int main(int argc, char **argv)
 	 * look for new data from server every 1000 usecs and print it
 	 */ 
 	if (childpid == 0) {
-		printf("child of shell to check for server.c input\n");
+		//printf("child of shell to check for server.c input\n");
 		char buffer[MSG_SIZE];
 		while(1){
 			usleep(1000);
@@ -147,7 +135,7 @@ int main(int argc, char **argv)
 			if(buffer == NULL){
 				continue;
 			}else{
-				printf("\nread from pipe: %s\n", buffer);//print buffer
+				printf("\n%s\n", buffer);//print buffer
 			}
 		}
 	}
@@ -156,8 +144,9 @@ int main(int argc, char **argv)
 	 * Start the main shell loop
 	 */
 	else if (childpid > 0) {
-		printf("parent process of shell, next is sh_start\n");
+		//printf("parent process of shell, next is sh_start\n");
 		//send child's pid to the server for cleanup
+		//SEND AS CHILD PID COMMAND
 		//write(fd1[1], childpid, sizeof(childpid));//write to pipe
 		sh_start(name,fd_ts);
 	}

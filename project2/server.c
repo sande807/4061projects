@@ -70,9 +70,9 @@ int list_users(user_chat_box_t *users, int fd)
  */
 int add_user(user_chat_box_t *users, char *buf, int server_fd)
 {
-	printf("in add user function\n") ;
-	/***** Insert YOUR code *******/
 	
+	/***** Insert YOUR code *******/
+	//printf("in add user function\n") ;
 	/* 
 	 * Check if user limit reached.
 	 *
@@ -94,30 +94,30 @@ int add_user(user_chat_box_t *users, char *buf, int server_fd)
 	
 	while (i < MAX_USERS) {
 		if (users[i].status == SLOT_FULL) {
-			printf("cannot add user: slot full\n") ;
+			//printf("cannot add user: slot full\n") ;
 			i++;
 		}
 		else {
-			printf("empty slot! time to add!\n") ;
+			//printf("empty slot! time to add!\n") ;
 			
-			users[i].status = SLOT_FULL ;
-			strcpy(users[i].name, s) ;
+			users[i].status = SLOT_FULL ;//set users status to filled
+			strcpy(users[i].name, s);//set users name
 			
-			if (pipe(users[i].ptoc) == -1 || pipe(users[i].ctop) == -1) {
+			if (pipe(users[i].ptoc) == -1 || pipe(users[i].ctop) == -1) {//create pipes
 				//pipe fails
 				perror("Failed to create the pipe.");
 				return 1 ;
 			}
 
 			//set up non-blocking pipes
-			//flag_t = fcntl (* users[i].ptoc , F_GETFL, 0) ; //not sure what fd should be
-			fcntl (users[i].ptoc[0], F_SETFL, O_NONBLOCK); 
-			//flag_f = fcntl(* users[i].ctop, F_GETFL, 0);
-			fcntl(users[i].ctop[0], F_SETFL, O_NONBLOCK);
+			flag_t = fcntl (* users[i].ptoc , F_GETFL, 0) ; //not sure what fd should be
+			fcntl (users[i].ptoc[0], F_SETFL, flag_t | O_NONBLOCK); 
+			flag_f = fcntl(* users[i].ctop, F_GETFL, 0);
+			fcntl(users[i].ctop[0], F_SETFL, flag_f | O_NONBLOCK);
 			
-			printf("user %s added!\n", users[i].name) ;
-			
-			if (write(users[i].ptoc[1], s, strlen(s) + 1) < 0) {
+			//printf("user %s added!\n", users[i].name) ;
+			sprintf(s, "%s%s", msg, s);
+			if (write(server_fd, s, strlen(s) + 1) < 0) {
 				perror("writing to server shell failed") ;
 			}
 			return i;
@@ -148,7 +148,7 @@ int broadcast_msg(user_chat_box_t *users, char *buf, int fd, char *sender)
 	s = strtok(buf, "\n");
 	sprintf(text, "%s : %s", sender, s);
 	usleep(100);
-	write(fd, text, strlen(text) + 1);
+	//write(fd, text, strlen(text) + 1);
 	for (i = 0; i < MAX_USERS; i++) {
 		if (users[i].status == SLOT_EMPTY){
 			continue;
@@ -302,6 +302,9 @@ int main(int argc, char **argv)
 	printf("starting\n");
 	/***** Insert YOUR code *******/
 	char command[MSG_SIZE];//a place to put the incoming command
+
+	sprintf(command,"%s","\0");
+
 	char *user1;//a place to put a users name
 	char *user2;//a place for another user (p2p)
 	char readint[MSG_SIZE];//create read character for converting ints for argv
@@ -332,9 +335,9 @@ int main(int argc, char **argv)
 
 	//make pipes non blocking
 	//flag_t = fcntl(* server.ptoc, F_GETFL, 0) ;
-	//fcntl(server.ptoc[0], F_SETFL, flag_t || O_NONBLOCK) ;
+	fcntl(server.ptoc[0], F_SETFL, O_NONBLOCK) ;
 	//flag_f = fcntl(* server.ctop, F_GETFL, 0) ;
-	//fcntl(server.ctop[0], F_SETFL, flag_f || O_NONBLOCK) ;
+	fcntl(server.ctop[0], F_SETFL, O_NONBLOCK) ;
 
 	/* Fork the server shell */
 	childpid = fork() ;
@@ -366,95 +369,103 @@ int main(int argc, char **argv)
 	 	 * The loop should read messages from the server shell, parse them using the 
 	 	 * parse_command() function and take the appropriate actions. */
 
-		printf("starting server.c loop\n");
+		//printf("starting server.c loop\n");
 		while (1) {
 			/* Let the CPU breathe */
 			usleep(1000);
 			//read the server shell, put result in command
-			read(server.ctop[0], command, MSG_SIZE);
-
-			printf("in server.c main loop command is: %s\n",command); 
-			//parse command
-			cmd = parse_command(command);
-			
-			//switch statement
-			if(cmd == CHILD_PID){
+			if(read(server.ctop[0], command, MSG_SIZE)<0){
+				//do nothing
+			}else{
+				printf("in server.c main loop command is: %s\n",command); 
+				//parse command
+				cmd = parse_command(command);
 				
-				//this is for when a new shell is created, we need to send the childpid back to
-				//the server and the server should store it in the new users childpid category so
-				//the server can later clean everything up.
-				
-			}else if(cmd == LIST_USERS){
-				
-				printf("list users command found\n");
-				if(list_users(users,server.ptoc[1]) < 0){
-					perror("failed to list users");
+				//switch statement
+				if(cmd == CHILD_PID){
+					
+					//this is for when a new shell is created, we need to send the childpid back to
+					//the server and the server should store it in the new users childpid category so
+					//the server can later clean everything up.
+					
+				}else if(cmd == LIST_USERS){
+					
+					printf("list users command found\n");
+					if(list_users(users,server.ptoc[1]) < 0){
+						perror("failed to list users");
+					}
+					printf("list users command done\n");
+	
+				}else if (cmd == ADD_USER){
+	
+					printf("add user command found\n");
+	
+					user1 = extract_name(cmd, command);
+	
+					newuserindex = add_user(users, user1, server.ptoc[1]);//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
+					//printf("newuserindex:%d\n",newuserindex);
+					
+				}else if(cmd == KICK){
+					printf("kick user\n");
+					
+					user1 = extract_name(cmd, command) ;
+					
+					i=find_user_index(users, user1);
+					
+					if(i<0){
+						perror("user not found");
+					}
+					
+					cleanup_user(i, users);
+					
+				}else if(cmd == EXIT){
+	
+					printf("exit server\n");
+					cleanup_server(server);
+					
+				}else{			
+					broadcast_msg(users,command,server.ptoc[1],"Server");
 				}
-				printf("list users command done\n");
-
-			}else if (cmd == ADD_USER){
-
-				printf("add user command found\n");
-
-				user1 = extract_name(cmd, command);
-
-				newuserindex = add_user(users, user1, server.ctop[0]);//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
-				printf("newuserindex:%d\n",newuserindex);
-				
-			}else if(cmd == KICK){
-				printf("kick user\n");
-				
-				user1 = extract_name(cmd, command) ;
-				
-				i=find_user_index(users, user1);
-				
-				if(i<0){
-					perror("user not found");
+	
+				/* Fork a process if a user was added (ADD_USER) */
+					/* Inside the child */
+					/*
+				 	 * Start an xterm with shell program running inside it.
+				 	 * execl(XTERM_PATH, XTERM, "+hold", "-e", <path for the SHELL program>, ..<rest of the arguments for the shell program>..);
+				 	 */
+				if(cmd == ADD_USER){
+					//printf("next is to fork using execl xterm\n") ;
+					childpid = fork();
+	
+					if (childpid == -1) {
+						//fork fails
+						perror("Failed to fork.") ;
+						return 1 ;
+					}
+	
+					else if (childpid == 0) {//if it's the child process open an xterm window and run ./shell and pass in some arguments
+						//printf("child program\n");
+						//turn ptoc[0] to the read character for argv
+						sprintf(readint,"%d", users[newuserindex].ptoc[0]);
+						//printf("readint:%s\n",readint);
+						
+						//turn server.ctop[1] to the write chracter for argv
+						sprintf(writeint, "%d" , users[newuserindex].ctop[1]);
+						//printf("writeint:%s\n",writeint);
+						
+							//begin xterm window with command ./shell and give the argv username, and two file descriptors
+						execl(XTERM_PATH, XTERM, "+hold","-e","./shell",users[newuserindex].name,readint,writeint, NULL);
+					}
+					else if (childpid > 0) {
+						continue;
+					}
 				}
-				
-				cleanup_user(i, users);
-				
-			}else if(cmd == EXIT){
-
-				printf("exit server\n");
-				cleanup_server(server);
-				
-			}else{			
-				broadcast_msg(users,command,server.ptoc[1],"Server");
 			}
-
-			/* Fork a process if a user was added (ADD_USER) */
-				/* Inside the child */
-				/*
-			 	 * Start an xterm with shell program running inside it.
-			 	 * execl(XTERM_PATH, XTERM, "+hold", "-e", <path for the SHELL program>, ..<rest of the arguments for the shell program>..);
-			 	 */
-			if(cmd == ADD_USER){
-				printf("next is to fork using execl xterm\n") ;
-				childpid = fork();
-				if (childpid == -1) {
-					//fork fails
-					perror("Failed to fork.") ;
-					return 1 ;
-				}
-				else if (childpid == 0) {//if it's the child process open an xterm window and run ./shell and pass in some arguments
-					printf("child program\n");
-					sprintf(readint,"%d", users[newuserindex].ptoc[0]);//turn server.ptoc[0] to the read character for argv
-					printf("readint:%s\n",readint);
-					printf("users.ptoc[0]=%d\n",users[newuserindex].ptoc[0]);
-					sprintf(writeint, "%d" , users[newuserindex].ctop[1]);//turn server.ctop[1] to the write chracter for argv
-					printf("writeint:%s\n",writeint);
-					printf("users.ctop[1]=%d\n",users[newuserindex].ctop[1]);
-					execl(XTERM_PATH, XTERM, "+hold","-e","./shell",users[newuserindex].name,readint,writeint, NULL);
-				}
-				else if (childpid > 0) {
-					continue;
-				}
-			}
-			/* Back to our main while loop for the "parent" */
-			/* 
-		 	 * Now read messages from the user shells (ie. LOOP) if any, then:
-		 	 * 		1. Parse the command
+				
+				/* Back to our main while loop for the "parent" */
+				/* 
+			 	 * Now read messages from the user shells (ie. LOOP) if any, then:
+				 	 * 		1. Parse the command
 		 	 * 		2. Begin switch statement to identify command and take appropriate action
 		 	 *
 		 	 * 		List of commands to handle here:
@@ -469,9 +480,8 @@ int main(int argc, char **argv)
 		 	 * 		from recitations?)
 		 	 * 		Cleanup user if the window is indeed closed.
 		 	 */
-		 	 
 			for (i = 0; i < MAX_USERS; i++) {
-				
+				usleep(1000);
 				if (users[i].status == SLOT_EMPTY) {
 					//if there is no user at this spot, skip it
 					continue;
@@ -480,9 +490,10 @@ int main(int argc, char **argv)
 				//otherwise, see if they have something to read
 				
 				//read file descriptor for a command
-				read(users[i].ctop[0], command, MSG_SIZE);//maybe check if there's nothing there?
-				//NOT SURE IF FILE DESCRIPTOR IS CORRECT
-				
+				if(read(users[i].ctop[0], command, MSG_SIZE)<0){//maybe check if there's nothing there?
+					continue;
+				}
+				printf("in user loop %d command is: %s\n",i,command); 
 				//parse command
 				cmd = parse_command(command);
 				
@@ -493,6 +504,7 @@ int main(int argc, char **argv)
 					//
 					
 				}else if(cmd == LIST_USERS){
+					printf("user list users");
 					
 					if(list_users(users, users[i].ctop[1])<0)//send list of users to user shell
 						perror("failed to list users");
@@ -503,13 +515,14 @@ int main(int argc, char **argv)
 					send_p2p_msg(i,users,command);//pass the command, then use command to find which user its supposed to go to
 					
 				}else if(cmd == EXIT){
-					
+					printf("user exit\n");
+
 					cleanup_user(i, users);
 					
 				}else{
-					
+					printf("user broadcast\n");
 					//broadcast
-					broadcast_msg(users,command,server.ptoc[1],"Server");//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
+					broadcast_msg(users,command,server.ptoc[1],users[i].name);//PROBABLY NOT RIGHT FILE DESCRIPTOR, FIX THIS
 					
 				}
 			}
