@@ -45,7 +45,7 @@ int list_users(user_chat_box_t *users, int fd)
 	 */
 	 
 	/***** Insert YOUR code *******/
-    char * noUsers = "<no users>\n" ;
+	char * noUsers = "<no users>\n" ;
 	int i ;
 	int x=0;
 	for (i = 0; i < MAX_USERS; i++) {
@@ -55,11 +55,11 @@ int list_users(user_chat_box_t *users, int fd)
 		if (users[i].status == SLOT_EMPTY){
 			continue;
 		}else{
-            printf("listing users\n") ;
+			printf("listing users\n") ;
 			x++;
 			if (write(fd, users[i].name, strlen(users[i].name) + 1) < 0) {
-                //if it's -1 write some error
-                fprintf(stderr, "Unable to list users.\n");
+				//if it's -1 write some error
+				fprintf(stderr, "Unable to list users.\n");
 			}
 		}
 	}
@@ -117,10 +117,10 @@ int add_user(user_chat_box_t *users, char *buf, int server_fd)
 			fcntl (users[i].ptoc[0], F_SETFL, flag_t | O_NONBLOCK); 
 			flag_f = fcntl(* users[i].ctop, F_GETFL, 0);
 			fcntl(users[i].ctop[0], F_SETFL, flag_f | O_NONBLOCK);
-            
-            //fcntl(users[i].ptoc[0], F_SETFL, O_NONBLOCK) ;
-            //flag_f = fcntl(* server.ctop, F_GETFL, 0) ;
-            //fcntl(users[i].ctop[0], F_SETFL, O_NONBLOCK) ;
+			
+			//fcntl(users[i].ptoc[0], F_SETFL, O_NONBLOCK) ;
+			//flag_f = fcntl(* server.ctop, F_GETFL, 0) ;
+			//fcntl(users[i].ctop[0], F_SETFL, O_NONBLOCK) ;
 			
 			//printf("user %s added!\n", users[i].name) ;
 			sprintf(s, "%s%s", msg, s);
@@ -278,12 +278,12 @@ void send_p2p_msg(int idx, user_chat_box_t *users, char *buf)
 	/***** Insert YOUR code *******/
 	
 	int i ;
-    int count ;
+	int count ;
 	char * p = NULL;
 	char * message = NULL;
 	char msg[MSG_SIZE];
 	char command[MSG_SIZE];
-    char * error = "User not found." ;
+	char * error = "User not found." ;
 	
 	sprintf(command, "%s", buf);
 	//get name of desired recipient
@@ -313,21 +313,21 @@ void send_p2p_msg(int idx, user_chat_box_t *users, char *buf)
 			if (write(users[i].ptoc[1], msg, strlen(msg) + 1) < 0) {
 				perror("writing to server shell");
 			}
-            //count equals 1 if the user has been found and the message has been sent
-            count = 1 ;
+			//count equals 1 if the user has been found and the message has been sent
+			count = 1 ;
 			break ;
 		}
 	}
-    printf("user doesnt exist\n") ;
+	printf("user doesnt exist\n") ;
 	
-    //if count doesn't equal 1, the user doesn't exist
+	//if count doesn't equal 1, the user doesn't exist
 	//if user doesn't exists, print error on user screen
-    if (count != 1) {
-        if (write(users[idx].ptoc[1], error, strlen(error) + 1) < 0) {
-            perror("no user") ;
-        }
-    }
-    
+	if (count != 1) {
+		if (write(users[idx].ptoc[1], error, strlen(error) + 1) < 0) {
+			perror("no user") ;
+		}
+	}
+	
 	
 			
 	
