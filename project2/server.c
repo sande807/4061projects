@@ -272,25 +272,25 @@ void send_p2p_msg(int idx, user_chat_box_t *users, char *buf)
 	/***** Insert YOUR code *******/
 	
 	int i ;
-	int namelength;
 	char * p = NULL;
+	char * message = NULL;
 	char msg[MSG_SIZE];
 	char command[MSG_SIZE];
 	
 	sprintf(command, "%s", buf);
 	//get name of desired recipient
 	p = extract_name(P2P, buf) ;
-	
 	printf("p: %s\n", p) ;
-	
-	namelength = strlen(p);
-	printf("namelength: %d\n", namelength);
-	namelength += 5;
-	
-	printf("command: %s\n", command);
+
+	//find the message by looking for the name, then looking for the next space using strstr
+	message = strstr(command, p);
+	printf("pointer:%s\n", message);
+
+	message = strstr(message, " ");
+	printf("pointer:%s\n", message);
+
 	//create message
-	sprintf(msg, "%s: %s", users[idx].name, command);
-	
+	sprintf(msg, "%s:%s", users[idx].name, message);
 	printf("msg: %s\n",msg);
 	
 	//if recipient doesn't exist, print error to user shell
