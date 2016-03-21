@@ -220,8 +220,6 @@ void cleanup_users(user_chat_box_t *users)
 void cleanup_server(server_ctrl_t server_ctrl)
 {
 	/***** Insert YOUR code *******/
-	//cleanup_users(users);
-	//NEED TO CALL THIS BUT WE DONT GET THE USER STRUCTURE?
 	close(server_ctrl.ptoc[0]);//close one pipe end 0
 	close(server_ctrl.ptoc[1]);//close one pipe end 1
 	close(server_ctrl.ctop[0]);//close the other pipe end 0
@@ -287,21 +285,18 @@ void send_p2p_msg(int idx, user_chat_box_t *users, char *buf)
 	char command[MSG_SIZE];
 	char * error = "User not found." ;
 	
+	//save buf in command
 	sprintf(command, "%s", buf);
+	
 	//get name of desired recipient
 	p = extract_name(P2P, buf) ;
-	printf("p: %s\n", p) ;
 
 	//find the message by looking for the name, then looking for the next space using strstr
 	message = strstr(command, p);
-	printf("pointer:%s\n", message);
-
 	message = strstr(message, " ");
-	printf("pointer:%s\n", message);
 
 	//create message
 	sprintf(msg, "%s:%s", users[idx].name, message);
-	printf("msg: %s\n",msg);
 	
 	//if recipient doesn't exist, print error to user shell
 	for (i = 0; i < MAX_USERS; i++) {
@@ -309,9 +304,8 @@ void send_p2p_msg(int idx, user_chat_box_t *users, char *buf)
 		if (users[i].status == SLOT_EMPTY)
 			continue ;
 			
-		if (strcmp(users[i].name, p) == 0) {
+		if (strcmp(users[i].name, p) == 0) {//found user
 			//send message
-			printf("sending message\n") ;
 			if (write(users[i].ptoc[1], msg, strlen(msg) + 1) < 0) {
 				perror("writing to server shell");
 			}
@@ -320,7 +314,6 @@ void send_p2p_msg(int idx, user_chat_box_t *users, char *buf)
 			break ;
 		}
 	}
-	printf("user doesnt exist\n") ;
 	
 	//if count doesn't equal 1, the user doesn't exist
 	//if user doesn't exists, print error on user screen
@@ -393,6 +386,7 @@ int main(int argc, char **argv)
 		execl("./shell", "empty","Server", readint, writeint, NULL);
         
 	}else if (childpid > 0) {
+		server.pid = childpid;
 		//begin server program
 
 		/* Inside the parent. This will be the most important part of this program. */
@@ -417,6 +411,12 @@ int main(int argc, char **argv)
 					//this is for when a new shell is created, we need to send the childpid back to
 					//the server and the server should store it in the new users childpid category so
 					//the server can later clean everything up.
+					printf("child pid command\n");
+					user1 = extract_name(cmd, command);
+					server.child_pid = atoi(user1);
+					printf("pid: %d\n", server.pid);
+					printf("child_pid %d\n", server.child_pid);
+					
 					
 				}else if(cmd == LIST_USERS){
 					
@@ -451,6 +451,7 @@ int main(int argc, char **argv)
 				}else if(cmd == EXIT){
 	
 					printf("exit server\n");
+					cleanup_users(users);
 					cleanup_server(server);
 					
 				}else{			
@@ -466,7 +467,7 @@ int main(int argc, char **argv)
 				if(cmd == ADD_USER){
 					//printf("next is to fork using execl xterm\n") ;
 					childpid = fork();
-	
+					users[newuserindex].pid = childpid;
 					if (childpid == -1) {
 						//fork fails
 						perror("Failed to fork.") ;
@@ -529,9 +530,12 @@ int main(int argc, char **argv)
 				
 				//switch statement
 				if(cmd == CHILD_PID){
-					
-					//no idea what this one does
-					//used for kill
+				
+					printf("child pid command\n");
+					user1 = extract_name(cmd, command);
+					users[i].child_pid = atoi(user1);
+					printf("pid: %d\n", users[i].pid);
+					printf("child_pid %d\n", users[i].child_pid);
 					
 				}else if(cmd == LIST_USERS){
 					printf("user list users");

@@ -98,7 +98,7 @@ int main(int argc, char **argv)
 	pid_t childpid;//child pid for fork
 	char * name ;//name holder for name of shell
 	int fd_ts, fd_fs;//fd to the pipes that go to the server and come from the server
-
+	char pidmessage[MSG_SIZE];
 	//extract name from argv
 	name = argv[1] ;
 	
@@ -147,7 +147,9 @@ int main(int argc, char **argv)
 		//printf("parent process of shell, next is sh_start\n");
 		//send child's pid to the server for cleanup
 		//SEND AS CHILD PID COMMAND
-		//write(fd1[1], childpid, sizeof(childpid));//write to pipe
+		sprintf(pidmessage, "\\child_pid %d", childpid);
+		printf("pidmessage: %s\n", pidmessage);
+		write(fd_ts, pidmessage, sizeof(pidmessage)+1);//write to pipe
 		sh_start(name,fd_ts);
 	}
 	
