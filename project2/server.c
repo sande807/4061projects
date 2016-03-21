@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <signal.h>
+#include <string.h>
 #include "util.h"
 
 /*
@@ -271,10 +272,26 @@ void send_p2p_msg(int idx, user_chat_box_t *users, char *buf)
 	/***** Insert YOUR code *******/
 	
 	int i ;
-	char *p ;
+	int namelength;
+	char * p = NULL;
+	char msg[MSG_SIZE];
+	char command[MSG_SIZE];
 	
+	sprintf(command, "%s", buf);
 	//get name of desired recipient
-	p = extract_name(idx, buf) ;
+	p = extract_name(P2P, buf) ;
+	
+	printf("p: %s\n", p) ;
+	
+	namelength = strlen(p);
+	printf("namelength: %d\n", namelength);
+	namelength += 5;
+	
+	printf("command: %s\n", command);
+	//create message
+	sprintf(msg, "%s: %s", users[idx].name, command);
+	
+	printf("msg: %s\n",msg);
 	
 	//if recipient doesn't exist, print error to user shell
 	for (i = 0; i < MAX_USERS; i++) {
@@ -284,9 +301,10 @@ void send_p2p_msg(int idx, user_chat_box_t *users, char *buf)
 			
 		if (strcmp(users[i].name, p) == 0) {
 			//send message
-			//if (write(users[i].ptoc[1], msg, strlen(msg) + 1) < 0) {
-			//	perror("writing to server shell");
-			//}
+			printf("sending message\n") ;
+			if (write(users[i].ptoc[1], msg, strlen(msg) + 1) < 0) {
+				perror("writing to server shell");
+			}
 			break ;
 		}
 	}
@@ -510,7 +528,6 @@ int main(int argc, char **argv)
 						perror("failed to list users");
 						
 				}else if (cmd == P2P){
-					printf("p2p\n") ;
 					
 					send_p2p_msg(i,users,command);//pass the command, then use command to find which user its supposed to go to
 					
