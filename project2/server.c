@@ -380,26 +380,24 @@ int main(int argc, char **argv)
 
 	if (childpid == 0) {
 		//start server shell
-		//printf("i am child, attempting to start shell\n");
-		//printf("server.ptoc[0]:%d\n",server.ptoc[0]);
-		//printf("server.ptoc[1]:%d\n",server.ptoc[1]);
-		//printf("server.ctop[0]:%d\n",server.ctop[0]);
-		//printf("server.ctop[1]:%d\n",server.ctop[1]);
 
-		sprintf(readint,"%d", server.ptoc[0]);//turn server.ptoc[0] to the read character for argv
-		sprintf(writeint, "%d" , server.ctop[1]);//turn server.ctop[1] to the write chracter for argv
-
-		execl("./shell", "empty","Server", readint, writeint, NULL);//execute shell program, pass in servername, read, and write fds
+        //turn server.ptoc[0] to the read character for argv
+		sprintf(readint,"%d", server.ptoc[0]);
+        
+        //turn server.ctop[1] to the write chracter for argv
+		sprintf(writeint, "%d" , server.ctop[1]);
+        
+        //execute shell program, pass in servername, read, and write fds
+		execl("./shell", "empty","Server", readint, writeint, NULL);
+        
 	}else if (childpid > 0) {
 		//begin server program
-		//execl(XTERM_PATH, XTERM, "+hold","-e","./shell","user1", NULL);
 
 		/* Inside the parent. This will be the most important part of this program. */
 		/* Start a loop which runs every 1000 usecs.
 	 	 * The loop should read messages from the server shell, parse them using the 
 	 	 * parse_command() function and take the appropriate actions. */
 
-		//printf("starting server.c loop\n");
 		while (1) {
 			/* Let the CPU breathe */
 			usleep(1000);
