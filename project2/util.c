@@ -1,6 +1,12 @@
 #include <stdio.h>
 #include <string.h>
 #include "util.h"
+/* CSci4061 S2016 Assignment 2
+section: 007 (Eric)
+section: 002 (Nick)
+date: mm/dd/yy
+name: Eric Sande, Nick Orf
+id: sande807, orfxx012 */
 
 /*
  * Print shell prompt. Pass the username as argument.

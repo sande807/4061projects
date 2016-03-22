@@ -7,6 +7,12 @@
 #include <sys/types.h>
 #include <signal.h>
 #include "util.h"
+/* CSci4061 S2016 Assignment 2
+section: 007 (Eric)
+section: 002 (Nick)
+date: mm/dd/yy
+name: Eric Sande, Nick Orf
+id: sande807, orfxx012 */
 
 /*
  * Read a line from stdin.

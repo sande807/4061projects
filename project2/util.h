@@ -27,6 +27,12 @@
 #define CMD_SEG  "\\seg"
 
 #define SH_DELIMS " \n\t\r"
+/* CSci4061 S2016 Assignment 2
+section: 007 (Eric)
+section: 002 (Nick)
+date: mm/dd/yy
+name: Eric Sande, Nick Orf
+id: sande807, orfxx012 */
 
 typedef enum server_cmd_type {
 	CHILD_PID,
