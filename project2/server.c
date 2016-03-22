@@ -371,9 +371,7 @@ int main(int argc, char **argv) {
 				if(waitpid((server.pid),0,WNOHANG)<0){
 						printf("\n");
 						return 0;
-					}else{
-							//do nothing
-					}
+				}
 			}else{
 				//parse command
 				cmd = parse_command(command);
