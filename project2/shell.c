@@ -28,20 +28,16 @@ int sh_handle_input(char *line, int fd_toserver)
 {
 	
 	/***** Insert YOUR code *******/
-	//printf("handling input: %s\n", line);
 	
 	//look for \seg command
 	if(starts_with(line, CMD_SEG)){
-		printf("seg fault\n");
 		char *line = NULL;
 		*line = '0';
 	}
 	
 	//otherwise send input to server.c for processing
-	////printf("sending to server\n");
 	write(fd_toserver, line, (strlen(line) + 1));
 	
-	//printf("sent to server\n") ;
 	return 1;
 }
 
@@ -77,13 +73,10 @@ void sh_start(char *name, int fd_toserver)
 
 		}else{//otherwise send line to be handled, then reprint prompt line
 			
-			//printf("about to handle input\n") ;
 			sh_handle_input(input, fd_toserver);
 
-			//printf("sent to server, waiting\n");
 			usleep(1000);
 
-			//printf("input handled, printing shell name\n");
 			print_prompt(name);
 		}
 	}
@@ -93,7 +86,6 @@ int main(int argc, char **argv)
 {
 	
 	/***** Insert YOUR code *******/
-	//printf("started shell\n");
 
 	pid_t childpid;//child pid for fork
 	char * name ;//name holder for name of shell
@@ -105,10 +97,6 @@ int main(int argc, char **argv)
 	//extract pipe descriptors from argv
 	fd_fs = atoi(argv[2]);
 	fd_ts = atoi(argv[3]);
-	
-	//printf("began shell with name: %s\n", name);
-	//printf("fd_ts:%d\n",fd_ts);
-	//printf("fd_fs:%d\n",fd_fs);
 
 	/* Fork a child to read from the pipe continuously */
 	childpid = fork() ;
@@ -122,7 +110,6 @@ int main(int argc, char **argv)
 	 * look for new data from server every 1000 usecs and print it
 	 */ 
 	if (childpid == 0) {
-		//printf("child of shell to check for server.c input\n");
 		char buffer[MSG_SIZE];
 		while(1){
 			usleep(1000);
@@ -135,20 +122,19 @@ int main(int argc, char **argv)
 			if(buffer == NULL){
 				continue;
 			}else{
-				printf("\n%s\n", buffer);//print buffer
+				printf("%s\n", buffer);//print buffer
 			}
 		}
 	}
 	/* Inside the parent
-	 * Send the child's pid to the server for later cleanup
+	 * Send the child's pid to the for later cleanup
 	 * Start the main shell loop
 	 */
 	else if (childpid > 0) {
-		//printf("parent process of shell, next is sh_start\n");
 		//send child's pid to the server for cleanup
 		//SEND AS CHILD PID COMMAND
 		sprintf(pidmessage, "\\child_pid %d", childpid);
-		//printf("pidmessage: %s\n", pidmessage);
+		
 		write(fd_ts, pidmessage, sizeof(pidmessage)+1);//write to pipe
 		sh_start(name,fd_ts);
 	}
