@@ -34,6 +34,8 @@ int is_receiving = 0; // a helper varibale may be used to handle multiple sender
  * 3. Setup the signal handlers (SIGIO for handling packet, SIGALRM for timeout).
  * Return 0 if success, -1 otherwise.
  */
+ //double check signal handlers
+ //otherwise complete
 int init(char *process_name, key_t key, int wsize, int delay, int to, int drop) {
     myinfo.pid = getpid();
     strcpy(myinfo.process_name, process_name);
@@ -66,7 +68,12 @@ int init(char *process_name, key_t key, int wsize, int delay, int to, int drop) 
 		perror("failed to create message queue") ;    
 
     // TODO set the signal handler for receiving packets
-
+	if(signal(SIGIO, receive_packet) == SIG_ERR)//signal function sets up signal with handler
+		perror("failed to set up SIGIO handler\n");//if error
+		
+	if(signal(SIGALRM, timeout_handler) == SIG_ERR)//signal function sets up signal with handler
+		perror("failed to set up SIGALRM handler\n");//if error
+		
     return -1;
 }
 
@@ -105,7 +112,7 @@ int get_process_info(char *process_name, process_t *info) {
  * TODO Send a packet to a mailbox identified by the mailbox_id, and send a SIGIO to the pid.
  * Return 0 if success, -1 otherwise.
  */
-//completed?
+//completed I think?
 int send_packet(packet_t *packet, int mailbox_id, int pid) {
 	if(msgsnd(mailbox_id,packet,sizeof(packet),0)== -1){
 		return -1;
@@ -261,8 +268,14 @@ int send_message(char *receiver, char* content) {
  * TODO Handle TIMEOUT. Resend previously sent packets whose ACKs have not been
  * received yet. Reset the TIMEOUT.
  */
+ //not complete
 void timeout_handler(int sig) {
-
+	if(sig == SIGALRM){
+		//resend previous packets with no ACKS recieved
+		
+		//reset the TIMEOUT
+		alarm(TIMEOUT);
+	}
 }
 
 /**
@@ -296,7 +309,10 @@ void handle_data(packet_t *packet, process_t *sender, int sender_mailbox_id) {
  * You should handle unexpected cases such as duplicate ACKs, ACK for completed message, etc.
  */
 void handle_ACK(packet_t *packet) {
-
+		//update status of packet to indicate recieved
+		
+		//reset TIMEOUT
+		alarm(TIMEOUT);
 }
 
 /**
