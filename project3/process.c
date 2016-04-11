@@ -34,8 +34,8 @@ int is_receiving = 0; // a helper varibale may be used to handle multiple sender
  * 3. Setup the signal handlers (SIGIO for handling packet, SIGALRM for timeout).
  * Return 0 if success, -1 otherwise.
  */
- //double check signal handlers
- //otherwise complete
+//double check signal handlers
+//otherwise complete
 int init(char *process_name, key_t key, int wsize, int delay, int to, int drop) {
     myinfo.pid = getpid();
     strcpy(myinfo.process_name, process_name);
@@ -74,7 +74,7 @@ int init(char *process_name, key_t key, int wsize, int delay, int to, int drop) 
 	if(signal(SIGALRM, timeout_handler) == SIG_ERR)//signal function sets up signal with handler
 		perror("failed to set up SIGALRM handler\n");//if error
 		
-    return -1;
+    return 0;
 }
 
 /**
@@ -280,7 +280,7 @@ void timeout_handler(int sig) {
 			if (message_stats.packet_status[i].is_sent == 1 && message_stats.packet_status[i].ACK_received == 0) {// found a packet that has been sent but not recieved
 					pid = message_stats.packet_status[i].packet.pid;
 					mailbox = message_stats.packet_status[i].packet.message_id;
-					pack = message_stats.packet_status[i].packet;
+					pack = &message_stats.packet_status[i].packet;
 					send_packet(pack,mailbox,pid);
 			}
 		}
