@@ -257,11 +257,8 @@ int send_message(char *receiver, char* content) {
     // the number of packets sent at a time depends on the WINDOW_SIZE.
     // you need to change the message_id of each packet (initialized to -1)
     // with the message_id included in the ACK packet sent by the receiver
-    //for (int i = 0; i < num_available_packets; i++) {
-		//if (send_packet(
 
-
-    return -1;
+    return 0;
 }
 
 /**
