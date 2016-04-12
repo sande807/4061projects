@@ -84,7 +84,7 @@ int init(char *process_name, key_t key, int wsize, int delay, int to, int drop) 
 int get_process_info(char *process_name, process_t *info) {
     char buffer[MAX_SIZE];
     char *token;
-
+    
     // open the file for reading
     FILE* fp = fopen(process_name, "r");
     if (fp == NULL) {
