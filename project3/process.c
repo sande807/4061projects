@@ -27,6 +27,8 @@ message_t *message;
 int num_available_packets; // number of packets that can be sent (0 <= n <= WINDOW_SIZE)
 int is_receiving = 0; // a helper varibale may be used to handle multiple senders
 
+int sig_wait = 1;
+
 /**
  * TODO complete the definition of the function
  * 1. Save the process information to a file and a process structure for future use.
@@ -64,7 +66,7 @@ int init(char *process_name, key_t key, int wsize, int delay, int to, int drop) 
 
     // TODO setup a message queue and save the id to the mailbox_id
     //setting up message queue    
-	if (mailbox_id = msgget(key, IPC_CREAT) == -1)
+	if ((mailbox_id = msgget(key, IPC_CREAT)) == -1)
 		perror("failed to create message queue") ;    
 
     // TODO set the signal handler for receiving packets
@@ -74,6 +76,7 @@ int init(char *process_name, key_t key, int wsize, int delay, int to, int drop) 
 	if(signal(SIGALRM, timeout_handler) == SIG_ERR)//signal function sets up signal with handler
 		perror("failed to set up SIGALRM handler\n");//if error
 	
+	printf("my mailbox: %d\n", mailbox_id);
 	printf("done init\n");
     return 0;
 }
@@ -122,6 +125,7 @@ int send_packet(packet_t *packet, int mailbox_id, int pid) {
 	if(kill(pid,SIGIO)==-1){
 		return -1;
 	}
+	printf("sent\n");
 	return 0;
 }
 
@@ -225,7 +229,7 @@ int send_message(char *receiver, char* content) {
     // get the receiver's mailbox id
     message_stats.mailbox_id = msgget(message_stats.receiver_info.key, 0666);
     if (message_stats.mailbox_id == -1) {
-        printf("Failed getting the receiver's mailbox.\n");
+        printf("Failed getting the receiver's mailbox. errno:%d\n",errno);
         return -1;
     }
     // get the number of packets
@@ -261,8 +265,19 @@ int send_message(char *receiver, char* content) {
     // you need to change the message_id of each packet (initialized to -1)
     // with the message_id included in the ACK packet sent by the receiver
     printf("num packets %d\n", message_stats.num_packets);
+    printf("sending packets to process: %d\n", message_stats.receiver_info.pid);
+    printf("sending packets to mailbox: %d\n",message_stats.mailbox_id);
     int index,sent_packets,out_packets;
     sent_packets = 0;
+    index =	get_next_packet(message_stats.num_packets);
+    printf("sending first packet at index %d\n", index);
+    send_packet(&message_stats.packet_status[index].packet,message_stats.mailbox_id, message_stats.receiver_info.pid);//send the first packet
+    
+    sig_wait =1;
+    while(sig_wait);//this will wait for the first ACK pack from the first message.
+    //when the ack is sent back it will contain the message id
+    //now we can use the message id
+    
     while(sent_packets<message_stats.num_packets){
 		
 		out_packets = (sent_packets - message_stats.num_packets_received);//determine how many packets are out
@@ -271,9 +286,9 @@ int send_message(char *receiver, char* content) {
 			
 			index =	get_next_packet(message_stats.num_packets);//get the index of the next packet
 			
-			message_stats.packet_status[index].packet.message_id = index;//PACKET MESSAGE ID?
+			message_stats.packet_status[index].packet.message_id = message_id;
 			
-			send_packet(&message_stats.packet_status[index].packet,message_stats.mailbox_id, message_stats.packet_status[index].packet.pid);//send the packet
+			send_packet(&message_stats.packet_status[index].packet,message_stats.mailbox_id, message_stats.receiver_info.pid);//send the packet
 			
 			sent_packets++;//update the number of sent packets
 			
@@ -363,6 +378,9 @@ void handle_data(packet_t *packet, process_t *sender, int sender_mailbox_id) {
  //mostly complete. special cases to do?
 void handle_ACK(packet_t *packet) {
 		printf("handling ack pack\n");
+		//set message id?
+		message_id = packet->message_id;
+		
 		//update status of packet to indicate recieved
 		int i = packet->packet_num;//get the packet number from the packet information
 		//use message status global variable to find the packet status for the specific status and set the ack recieved value to 1
@@ -390,13 +408,16 @@ int get_packet_from_mailbox(int mailbox_id) {
  * If the packet is DATA, send an ACK packet and SIGIO to the sender.
  * If the packet is ACK, update the status of the packet.
  */
-//NOT DONE, STILL NEED TO GET THE PACKET FROM MSGRCV?
-//seg faults
+//NOT DONE, STILL NEED TO GET THE PACKET FROM MSGRCV
 void receive_packet(int sig) {
 	printf("receive packet\n");
+	printf("mailbox id: %d\n", mailbox_id);
+	sig_wait=0;
 	packet_t *pack;
-	msgrcv(message_id,pack,sizeof(pack),0,0);
-	printf("msg recieved\n");
+	if(msgrcv(mailbox_id,pack,2147483647,0,0)==-1){
+		printf("msgrcv failed %d\n", errno);
+	}
+	printf("got packet\n");
     // TODO you have to call drop_packet function to drop a packet with some probability
     if (drop_packet()) {//if drop packet returns 1 the packet was not dropped
 		printf("packet was not dropped\n");
@@ -436,23 +457,23 @@ int receive_message(char *data) {
 	//save message content to message data structure
 	//message_stats is the status structure that contains number of packets and other info
 	//message contains the actual message data
-
+	
 	//initializing message data
 	//each of the commented out lines cause a seg fault
-	//message->sender = myinfo ;
-	printf("2\n") ;
+	//message->sender = myinfo;
+	
 	//message->num_packets_received = message_stats.num_packets_received ;
-	printf("3\n") ;
+	
 	//message->is_complete = 0 ;
-	printf("4\n") ;
+	
 	//message->is_received = 1 ;
-	printf("5\n") ;
+	
 	//message->data = data ;
+	printf("Waiting for message\n");
+	while(sig_wait){}
 	
-	printf("receiver message\n") ;
+	printf("received message\n") ;
+	sig_wait = 1;
 	
-	//add data to message.data
-	//printf("adding data to message.data\n");
-	//data = "hello\0";
     return 0;
 }
