@@ -412,6 +412,8 @@ void receive_packet(int sig) {
 			//if it is an ACK then just hand that off to handle ACK
 			handle_ACK(pack);
 			
+		} else {
+			printf("wtf?\n") ;
 		}
     }
 }
@@ -433,6 +435,19 @@ int receive_message(char *data) {
 	//save message content to message data structure
 	//message_stats is the status structure that contains number of packets and other info
 	//message contains the actual message data
+
+	//initializing message data
+	//amessage->sender = myinfo ;
+	printf("2\n") ;
+	//message->num_packets_received = message_stats.num_packets_received ;
+	printf("3\n") ;
+	//message->is_complete = 0 ;
+	printf("4\n") ;
+	//message->is_received = 1 ;
+	printf("5\n") ;
+	//message->data = data ;
+	
+	printf("receiver message\n") ;
 	
 	//add data to message.data
 	//printf("adding data to message.data\n");

@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
         printf("\nRole (sender/receiver): ");
         scanf("%s", role);
 
-        if (strcmp(role, "sender") == 0) {
+        if (strcmp(role, "sender") == 0 || strcmp(role, "s") == 0) {
             // get the receiver name and the data
             printf("\nReceiver name: ");
             scanf("%s", receiver);
@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
             if (send_message(receiver, data) < 0) {
                 printf("Failed sending data to %s\n", receiver);
             }
-        } else if (strcmp(role, "receiver") == 0) {
+        } else if (strcmp(role, "receiver") == 0 || strcmp(role, "r") == 0) {
             if (receive_message(data) >= 0) {
                 printf("Message: %s\n", data);
             }
