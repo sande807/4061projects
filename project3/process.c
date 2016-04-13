@@ -112,9 +112,9 @@ int get_process_info(char *process_name, process_t *info) {
  * TODO Send a packet to a mailbox identified by the mailbox_id, and send a SIGIO to the pid.
  * Return 0 if success, -1 otherwise.
  */
-//completed I think?
+//completed
 int send_packet(packet_t *packet, int mailbox_id, int pid) {
-	if(msgsnd(mailbox_id,packet,sizeof(packet),0)== -1){
+	if(msgsnd(mailbox_id,packet,sizeof(packet.data),0)== -1){
 		return -1;
 	}
 	if(kill(pid,SIGIO)==-1){
@@ -257,6 +257,7 @@ int send_message(char *receiver, char* content) {
     // the number of packets sent at a time depends on the WINDOW_SIZE.
     // you need to change the message_id of each packet (initialized to -1)
     // with the message_id included in the ACK packet sent by the receiver
+    
 
     return 0;
 }
@@ -291,14 +292,28 @@ void timeout_handler(int sig) {
  * The message id is determined by the receiver and has to be included in the ACK packet.
  * Return 0 if success, -1 otherwise.
  */
+//almost complete
+//need to get data and total_size
 int send_ACK(int mailbox_id, pid_t pid, int packet_num) {
-    // TODO construct an ACK packet
+    // TODO construct an ACK packet\
+    //construct packet from stuff
+    packet_t ackPack ;
+    ackPack.mtype = ACK ;
+    ackPack.message_id = -1 ;
+    ackPack.pid = pid ;
+    strcpy(ackPack.process_name, myinfo.process_name) ;
+    ackPack.num_packets = packet_num ;
+    //ackPack.total_size =
+    //ackPack.data 
 
     int delay = rand() % MAX_DELAY;
     sleep(delay);
 
     // TODO send an ACK for the packet it received
-	//msgsnd(mailbox_id, "message created", "message size", flags);
+	//send message to message queue, return -1 if fails
+	if (msgsnd(mailbox_id, (void *) &ackPack, sizeof(ackPack.data), 0) == 0)
+		return 0 ;
+		
     return -1;
 }
 
@@ -307,9 +322,9 @@ int send_ACK(int mailbox_id, pid_t pid, int packet_num) {
  * You should handle unexpected cases such as duplicate packet, packet for a different message,
  * packet from a different sender, etc.
  */
- //complete
+//complete
 void handle_data(packet_t *packet, process_t *sender, int sender_mailbox_id) {
-		//save  packets data
+		//save packets data
 		receive_message(packet->data);
 		//send an ACK to sender
 		int pid = sender->pid;//use this to derefernce pointers to structures
@@ -324,6 +339,7 @@ void handle_data(packet_t *packet, process_t *sender, int sender_mailbox_id) {
  */
 void handle_ACK(packet_t *packet) {
 		//update status of packet to indicate recieved
+		
 		
 		//reset TIMEOUT
 		alarm(TIMEOUT);
@@ -345,7 +361,6 @@ int get_packet_from_mailbox(int mailbox_id) {
  * If the packet is ACK, update the status of the packet.
  */
 void receive_packet(int sig) {
-
     // TODO you have to call drop_packet function to drop a packet with some probability
     if (drop_packet()) {//if drop packet returns 1 the packet was not dropped
 		/*if(packet->mtype == DATA){
@@ -364,5 +379,8 @@ int receive_message(char *data) {
 	//save message content to message data structure
 	//message_stats is the status structure that contains number of packets and other info
 	//message contains the actual message data
+	
+	//need to use drop_packet() which returns 1 is the packet should be dropped, 0 otherwise
+	
     return -1;
 }
