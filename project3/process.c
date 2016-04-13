@@ -266,7 +266,7 @@ int send_message(char *receiver, char* content) {
  * TODO Handle TIMEOUT. Resend previously sent packets whose ACKs have not been
  * received yet. Reset the TIMEOUT.
  */
- //not complete
+//complete
 void timeout_handler(int sig) {
 	if(sig == SIGALRM){
 		//resend previous packets with no ACKS recieved
@@ -277,7 +277,7 @@ void timeout_handler(int sig) {
 		for(i= 0; i < message_stats.num_packets; i++) {
 			if (message_stats.packet_status[i].is_sent == 1 && message_stats.packet_status[i].ACK_received == 0) {// found a packet that has been sent but not recieved
 					pid = message_stats.packet_status[i].packet.pid;
-					mailbox = message_stats.packet_status[i].packet.message_id;
+					mailbox = message_stats.message_id;
 					pack = &message_stats.packet_status[i].packet;
 					send_packet(pack,mailbox,pid);
 			}
@@ -322,7 +322,7 @@ int send_ACK(int mailbox_id, pid_t pid, int packet_num) {
  * You should handle unexpected cases such as duplicate packet, packet for a different message,
  * packet from a different sender, etc.
  */
-//complete
+//complete except for handling unexpected cases
 void handle_data(packet_t *packet, process_t *sender, int sender_mailbox_id) {
 		//save packets data
 		receive_message(packet->data);
@@ -337,10 +337,16 @@ void handle_data(packet_t *packet, process_t *sender, int sender_mailbox_id) {
  * has been successfully received and reset the TIMEOUT.
  * You should handle unexpected cases such as duplicate ACKs, ACK for completed message, etc.
  */
+ //mostly complete. special cases to do?
 void handle_ACK(packet_t *packet) {
 		//update status of packet to indicate recieved
-		
-		
+		int i = packet->packet_num;//get the packet number from the packet information
+		//use message status global variable to find the packet status for the specific status and set the ack recieved value to 1
+        if(message_stats->packet_status[i].ACK_received == 1){
+			//duplicate ack. do something?
+		}else{
+			message_stats->packet_status[i].ACK_received = 1;
+		}
 		//reset TIMEOUT
 		alarm(TIMEOUT);
 }
@@ -360,14 +366,26 @@ int get_packet_from_mailbox(int mailbox_id) {
  * If the packet is DATA, send an ACK packet and SIGIO to the sender.
  * If the packet is ACK, update the status of the packet.
  */
+ //NOT DONE, STILL NEED TO GET THE PACKET FROM MSGRCV?
 void receive_packet(int sig) {
+	packet_t *pack;
+	//msgrcv(
     // TODO you have to call drop_packet function to drop a packet with some probability
     if (drop_packet()) {//if drop packet returns 1 the packet was not dropped
-		/*if(packet->mtype == DATA){
+		if(packet->mtype == DATA){
 			
-		}else if(packet->mtype == ACK){
+			//call handle data to handle the data, this also sends the ACK
+			handle_data(pack,my_info,mailbox_id);
 			
-		}*/
+			//send a signal to the sender that there is an ACK
+			kill(pack->pid, SIGIO);
+			
+		}else if(pack->mtype == ACK){
+			
+			//if it is an ACK then just hand that off to handle ACK
+			handle_ACK(pack);
+			
+		}
     }
 }
 
@@ -379,8 +397,10 @@ int receive_message(char *data) {
 	//save message content to message data structure
 	//message_stats is the status structure that contains number of packets and other info
 	//message contains the actual message data
-	
+
+
 	//need to use drop_packet() which returns 1 is the packet should be dropped, 0 otherwise
-	
+	message_stats.num_packets_received++;
+
     return -1;
 }
