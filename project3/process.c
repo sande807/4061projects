@@ -37,6 +37,7 @@ int is_receiving = 0; // a helper varibale may be used to handle multiple sender
 //double check signal handlers
 //otherwise complete
 int init(char *process_name, key_t key, int wsize, int delay, int to, int drop) {
+	printf("init\n");
     myinfo.pid = getpid();
     strcpy(myinfo.process_name, process_name);
     myinfo.key = key;
@@ -73,7 +74,8 @@ int init(char *process_name, key_t key, int wsize, int delay, int to, int drop) 
 		
 	if(signal(SIGALRM, timeout_handler) == SIG_ERR)//signal function sets up signal with handler
 		perror("failed to set up SIGALRM handler\n");//if error
-		
+	
+	printf("done init\n");
     return 0;
 }
 
@@ -114,6 +116,7 @@ int get_process_info(char *process_name, process_t *info) {
  */
 //completed
 int send_packet(packet_t *packet, int mailbox_id, int pid) {
+	printf("sending packet\n");
 	if(msgsnd(mailbox_id,packet,sizeof(packet->data),0)== -1){
 		return -1;
 	}
@@ -210,6 +213,7 @@ int drop_packet() {
  * Return 0 if success, -1 otherwise.
  */
 int send_message(char *receiver, char* content) {
+	printf("sending message\n");
     if (receiver == NULL || content == NULL) {
         printf("Receiver or content is NULL\n");
         return -1;
@@ -257,11 +261,12 @@ int send_message(char *receiver, char* content) {
     // the number of packets sent at a time depends on the WINDOW_SIZE.
     // you need to change the message_id of each packet (initialized to -1)
     // with the message_id included in the ACK packet sent by the receiver
+    printf("num packets %d\n", message_stats.num_packets);
     int index,sent_packets,out_packets;
     sent_packets = 0;
     while(message_stats.num_packets_received<message_stats.num_packets){
 		
-		out_packets = (message_stats.num_packets_received - sent_packets);//determine how many packets are out
+		out_packets = (sent_packets - message_stats.num_packets_received);//determine how many packets are out
 		
 		if(out_packets< WINDOW_SIZE){//if there are less packets out than the window size, send out a packet
 			
@@ -286,6 +291,7 @@ int send_message(char *receiver, char* content) {
 void timeout_handler(int sig) {
 	if(sig == SIGALRM){
 		//resend previous packets with no ACKS recieved
+		printf("resending packets, timeout handler\n");
 		int pid;
 		int mailbox;
 		int i;
@@ -313,6 +319,7 @@ void timeout_handler(int sig) {
 int send_ACK(int mailbox_id, pid_t pid, int packet_num) {
     // TODO construct an ACK packet\
     //construct packet from stuff
+    printf("sending ackpack\n");
     packet_t ackPack ;
     ackPack.mtype = ACK ;
     ackPack.message_id = -1 ;
@@ -340,6 +347,7 @@ int send_ACK(int mailbox_id, pid_t pid, int packet_num) {
  */
 //complete except for handling unexpected cases
 void handle_data(packet_t *packet, process_t *sender, int sender_mailbox_id) {
+		printf("handling data\n");
 		//save packets data
 		receive_message(packet->data);
 		//send an ACK to sender
@@ -355,6 +363,7 @@ void handle_data(packet_t *packet, process_t *sender, int sender_mailbox_id) {
  */
  //mostly complete. special cases to do?
 void handle_ACK(packet_t *packet) {
+		printf("handling ack pack\n");
 		//update status of packet to indicate recieved
 		int i = packet->packet_num;//get the packet number from the packet information
 		//use message status global variable to find the packet status for the specific status and set the ack recieved value to 1
@@ -384,8 +393,10 @@ int get_packet_from_mailbox(int mailbox_id) {
  */
  //NOT DONE, STILL NEED TO GET THE PACKET FROM MSGRCV?
 void receive_packet(int sig) {
+	printf("receive packet\n");
 	packet_t *pack;
-	//msgrcv(
+	msgrcv(message_id,pack,sizeof(pack),5,0);
+	
     // TODO you have to call drop_packet function to drop a packet with some probability
     if (drop_packet()) {//if drop packet returns 1 the packet was not dropped
 		if(pack->mtype == DATA){
@@ -413,9 +424,11 @@ int receive_message(char *data) {
 	//save message content to message data structure
 	//message_stats is the status structure that contains number of packets and other info
 	//message contains the actual message data
-
-
-	//need to use drop_packet() which returns 1 is the packet should be dropped, 0 otherwise
+	
+	//add data to message.data
+	printf("adding data to message.data\n");
+	strcat(message->data,data);
+	
 	message_stats.num_packets_received++;
 
     return -1;
