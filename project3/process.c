@@ -114,7 +114,7 @@ int get_process_info(char *process_name, process_t *info) {
  */
 //completed
 int send_packet(packet_t *packet, int mailbox_id, int pid) {
-	if(msgsnd(mailbox_id,packet,sizeof(packet.data),0)== -1){
+	if(msgsnd(mailbox_id,packet,sizeof(packet->data),0)== -1){
 		return -1;
 	}
 	if(kill(pid,SIGIO)==-1){
@@ -257,8 +257,24 @@ int send_message(char *receiver, char* content) {
     // the number of packets sent at a time depends on the WINDOW_SIZE.
     // you need to change the message_id of each packet (initialized to -1)
     // with the message_id included in the ACK packet sent by the receiver
-    
-
+    int index,sent_packets,out_packets;
+    sent_packets = 0;
+    while(message_stats.num_packets_received<message_stats.num_packets){
+		
+		out_packets = (message_stats.num_packets_received - sent_packets);//determine how many packets are out
+		
+		if(out_packets< WINDOW_SIZE){//if there are less packets out than the window size, send out a packet
+			
+			index =	get_next_packet(message_stats.num_packets);//get the index of the next packet
+			
+			message_stats.packet_status[index].packet.message_id = index;//PACKET MESSAGE ID?
+			
+			send_packet(&message_stats.packet_status[index].packet,message_stats.mailbox_id, message_stats.packet_status[index].packet.pid);//send the packet
+			
+			sent_packets++;//update the number of sent packets
+			
+		}
+	}
     return 0;
 }
 
@@ -277,7 +293,7 @@ void timeout_handler(int sig) {
 		for(i= 0; i < message_stats.num_packets; i++) {
 			if (message_stats.packet_status[i].is_sent == 1 && message_stats.packet_status[i].ACK_received == 0) {// found a packet that has been sent but not recieved
 					pid = message_stats.packet_status[i].packet.pid;
-					mailbox = message_stats.message_id;
+					mailbox = message_stats.mailbox_id;
 					pack = &message_stats.packet_status[i].packet;
 					send_packet(pack,mailbox,pid);
 			}
@@ -342,10 +358,10 @@ void handle_ACK(packet_t *packet) {
 		//update status of packet to indicate recieved
 		int i = packet->packet_num;//get the packet number from the packet information
 		//use message status global variable to find the packet status for the specific status and set the ack recieved value to 1
-        if(message_stats->packet_status[i].ACK_received == 1){
+        if(message_stats.packet_status[i].ACK_received == 1){
 			//duplicate ack. do something?
 		}else{
-			message_stats->packet_status[i].ACK_received = 1;
+			message_stats.packet_status[i].ACK_received = 1;
 		}
 		//reset TIMEOUT
 		alarm(TIMEOUT);
@@ -372,10 +388,10 @@ void receive_packet(int sig) {
 	//msgrcv(
     // TODO you have to call drop_packet function to drop a packet with some probability
     if (drop_packet()) {//if drop packet returns 1 the packet was not dropped
-		if(packet->mtype == DATA){
+		if(pack->mtype == DATA){
 			
 			//call handle data to handle the data, this also sends the ACK
-			handle_data(pack,my_info,mailbox_id);
+			handle_data(pack,&myinfo,mailbox_id);
 			
 			//send a signal to the sender that there is an ACK
 			kill(pack->pid, SIGIO);
