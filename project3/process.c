@@ -390,7 +390,8 @@ int get_packet_from_mailbox(int mailbox_id) {
  * If the packet is DATA, send an ACK packet and SIGIO to the sender.
  * If the packet is ACK, update the status of the packet.
  */
- //NOT DONE, STILL NEED TO GET THE PACKET FROM MSGRCV?
+//NOT DONE, STILL NEED TO GET THE PACKET FROM MSGRCV?
+//seg faults
 void receive_packet(int sig) {
 	printf("receive packet\n");
 	packet_t *pack;
@@ -399,6 +400,7 @@ void receive_packet(int sig) {
     // TODO you have to call drop_packet function to drop a packet with some probability
     if (drop_packet()) {//if drop packet returns 1 the packet was not dropped
 		printf("packet was not dropped\n");
+		//seg fault happens between here
 		if(pack->mtype == DATA){
 			printf("data type\n");
 			//call handle data to handle the data, this also sends the ACK
@@ -411,10 +413,8 @@ void receive_packet(int sig) {
 			printf("ACK found\n");
 			//if it is an ACK then just hand that off to handle ACK
 			handle_ACK(pack);
-			
-		} else {
-			printf("wtf?\n") ;
 		}
+		//and here
     }
 }
 
@@ -431,13 +431,15 @@ void receive_packet(int sig) {
 } message_t;
  * 
  */
+//seg faults
 int receive_message(char *data) {
 	//save message content to message data structure
 	//message_stats is the status structure that contains number of packets and other info
 	//message contains the actual message data
 
 	//initializing message data
-	//amessage->sender = myinfo ;
+	//each of the commented out lines cause a seg fault
+	//message->sender = myinfo ;
 	printf("2\n") ;
 	//message->num_packets_received = message_stats.num_packets_received ;
 	printf("3\n") ;
