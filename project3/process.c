@@ -34,8 +34,7 @@ int is_receiving = 0; // a helper varibale may be used to handle multiple sender
  * 3. Setup the signal handlers (SIGIO for handling packet, SIGALRM for timeout).
  * Return 0 if success, -1 otherwise.
  */
-//double check signal handlers
-//otherwise complete
+//complete
 int init(char *process_name, key_t key, int wsize, int delay, int to, int drop) {
 	printf("init\n");
     myinfo.pid = getpid();
@@ -117,7 +116,7 @@ int get_process_info(char *process_name, process_t *info) {
 //completed
 int send_packet(packet_t *packet, int mailbox_id, int pid) {
 	printf("sending packet\n");
-	if(msgsnd(mailbox_id,packet,sizeof(packet->data),0)== -1){
+	if(msgsnd(mailbox_id,packet,sizeof(packet),0)== -1){
 		return -1;
 	}
 	if(kill(pid,SIGIO)==-1){
@@ -264,7 +263,7 @@ int send_message(char *receiver, char* content) {
     printf("num packets %d\n", message_stats.num_packets);
     int index,sent_packets,out_packets;
     sent_packets = 0;
-    while(message_stats.num_packets_received<message_stats.num_packets){
+    while(sent_packets<message_stats.num_packets){
 		
 		out_packets = (sent_packets - message_stats.num_packets_received);//determine how many packets are out
 		
@@ -349,7 +348,7 @@ int send_ACK(int mailbox_id, pid_t pid, int packet_num) {
 void handle_data(packet_t *packet, process_t *sender, int sender_mailbox_id) {
 		printf("handling data\n");
 		//save packets data
-		receive_message(packet->data);
+		strcat(message->data, packet->data);
 		//send an ACK to sender
 		int pid = sender->pid;//use this to derefernce pointers to structures
 		int num = packet->packet_num;//same as above
@@ -395,12 +394,13 @@ int get_packet_from_mailbox(int mailbox_id) {
 void receive_packet(int sig) {
 	printf("receive packet\n");
 	packet_t *pack;
-	msgrcv(message_id,pack,sizeof(pack),5,0);
-	
+	msgrcv(message_id,pack,sizeof(pack),0,0);
+	printf("msg recieved\n");
     // TODO you have to call drop_packet function to drop a packet with some probability
     if (drop_packet()) {//if drop packet returns 1 the packet was not dropped
+		printf("packet was not dropped\n");
 		if(pack->mtype == DATA){
-			
+			printf("data type\n");
 			//call handle data to handle the data, this also sends the ACK
 			handle_data(pack,&myinfo,mailbox_id);
 			
@@ -408,7 +408,7 @@ void receive_packet(int sig) {
 			kill(pack->pid, SIGIO);
 			
 		}else if(pack->mtype == ACK){
-			
+			printf("ACK found\n");
 			//if it is an ACK then just hand that off to handle ACK
 			handle_ACK(pack);
 			
@@ -419,6 +419,15 @@ void receive_packet(int sig) {
 /**
  * TODO Initialize the message structure and wait for a message from another process.
  * Save the message content to the data and return 0 if success, -1 otherwise
+ * 
+ * typedef struct {
+    process_t sender;
+    int num_packets_received;
+    int is_complete;
+    int *is_received;
+    char *data;
+} message_t;
+ * 
  */
 int receive_message(char *data) {
 	//save message content to message data structure
@@ -426,10 +435,7 @@ int receive_message(char *data) {
 	//message contains the actual message data
 	
 	//add data to message.data
-	printf("adding data to message.data\n");
-	strcat(message->data,data);
-	
-	message_stats.num_packets_received++;
-
-    return -1;
+	//printf("adding data to message.data\n");
+	//data = "hello\0";
+    return 0;
 }
