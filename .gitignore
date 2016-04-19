@@ -18,3 +18,5 @@ shell
 test
 B
 application
+*.tar
+/testing
