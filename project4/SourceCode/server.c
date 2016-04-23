@@ -1,8 +1,8 @@
 /* csci4061 S2016 Assignment 4 
-* section: one_digit_number 
-* date: mm/dd/yy 
-* names: Name of each member of the team (for partners)
-* UMN Internet ID, Student ID (xxxxxxxx, 4444444), (for partners)
+* section: 007, 002
+* date: 05/02/16
+* names: Eric Sande, Nick Orf
+* UMN Internet ID, Student ID: sande807 4828951, orfxx012 4669898
 */
 
 #include <stdio.h>
@@ -21,8 +21,8 @@
 //Structure for queue.
 typedef struct request_queue
 {
-        int             m_socket;
-        char    m_szRequest[MAX_REQUEST_LENGTH];
+        int   	m_socket;
+        char   	m_szRequest[MAX_REQUEST_LENGTH];
 } request_queue_t;
 
 void * dispatch(void * arg)
@@ -46,9 +46,11 @@ int main(int argc, char **argv)
 
         printf("Call init() first and make a dispather and worker threads\n");
         
-        int p = (int)* argv[5] ;
-        
+        //get port, then initialize
+        int p = (int)* argv[0] ;
         init(p) ;
+        
+        //need to create dispatcher threads and worker threads
         
         return 0;
 }
