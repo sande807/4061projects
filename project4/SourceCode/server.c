@@ -45,5 +45,10 @@ int main(int argc, char **argv)
         }
 
         printf("Call init() first and make a dispather and worker threads\n");
+        
+        int p = (int)* argv[5] ;
+        
+        init(p) ;
+        
         return 0;
 }

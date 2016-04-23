@@ -20,3 +20,4 @@ B
 application
 *.tar
 /testing
+web_server
