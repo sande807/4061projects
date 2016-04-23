@@ -51,6 +51,10 @@ int main(int argc, char **argv)
         init(p) ;
         
         //need to create dispatcher threads and worker threads
-        
-        return 0;
+        int num_dispatcher = (int)* argv[2];
+        int num_workers = (int)* argv[3];
+        int i;
+        for(i=0; i<num_dispatcher; i++){}
+        for(i=0; i<num_workers; i++){}
+		return 0;
 }
