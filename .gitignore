@@ -1,5 +1,4 @@
 #git should ignore the below files
-*.o
 *~
 *.swp
 *.swo
@@ -21,3 +20,8 @@ application
 *.tar
 /testing
 web_server
+main.o
+server.o
+shell.o
+/project2/util.o
+
