@@ -35,6 +35,9 @@ void * worker(void * arg)
         return NULL;
 }
 
+//make these variables global so they can be used in the worker and dispatch threads
+int num_workers, num_dispatcher;
+
 int main(int argc, char **argv)
 {
         //Error check first.
@@ -51,10 +54,25 @@ int main(int argc, char **argv)
         init(p) ;
         
         //need to create dispatcher threads and worker threads
-        int num_dispatcher = (int)* argv[2];
-        int num_workers = (int)* argv[3];
-        int i;
-        for(i=0; i<num_dispatcher; i++){}
-        for(i=0; i<num_workers; i++){}
+        //get number of dispatchers and workers from argv
+        num_dispatcher = (int)* argv[2];
+        num_workers = (int)* argv[3];
+        
+        //create an array of dispatcher and worker threads from those values
+		pthread_t d_threads[num_dispatcher];
+		pthread_t w_threads[num_workers];
+		
+		//for each dispatcher and worker thread create the thread and join it
+		//for dispatcher threads call the function dispatch
+		int i;
+        for(i=0; i<num_dispatcher; i++){
+			pthread_create(&d_threads[i], NULL, dispatch, NULL);
+			pthread_join(d_threads[i], NULL);
+		}
+		//for the worker threads call the function worker
+        for(i=0; i<num_workers; i++){
+			pthread_create(&w_threads[i], NULL, worker, NULL);
+			pthread_join(w_threads[i], NULL);
+		}
 		return 0;
 }
