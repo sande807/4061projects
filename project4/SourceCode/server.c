@@ -25,17 +25,42 @@ typedef struct request_queue
         char   	m_szRequest[MAX_REQUEST_LENGTH];
 } request_queue_t;
 
-void * dispatch(void * arg)
-{
+void * dispatch(void * arg){
+	int fd;
+	char *file;
+	
+	//the dispatcher thread will continuously run these operations
+	//it will attempt to get a connnection using the accept_connection function which will return a file descriptor
+	//if that is unsuccessful it will exit thread
+	//then it will try to get request, if that fails it will go to the next iteration of the loop
+	//if successful it will send the request to the worker thread
+	while(1){
+		
+		//get file descriptor from accept_connection()
+		//if fd is negative then error, thread should exit
+		if( fd = accept_connection() < 0 )
+		{
+			pthread_exit(NULL);
+		}
+		
+		//use file descriptor to get request. if return value == zero then success
+		//if success then it will continue to do work. if failure it will skip this and continue
+		//file is undefined before this point. if successful the filename will be stored in the file
+		if(get_request(fd, file) == 0)
+		{
+			//place request in a queue for the worker to pick up
+		}
+	}
+    return NULL;
+}
+
+void * worker(void * arg){
+	//get request from queue then either return request or return the error		
+		
         return NULL;
 }
 
-void * worker(void * arg)
-{
-        return NULL;
-}
-
-//make these variables global so they can be used in the worker and dispatch threads
+//make these variables global so they can be used in the worker and dispatch threads?
 int num_workers, num_dispatcher;
 
 int main(int argc, char **argv)
@@ -74,5 +99,6 @@ int main(int argc, char **argv)
 			pthread_create(&w_threads[i], NULL, worker, NULL);
 			pthread_join(w_threads[i], NULL);
 		}
+		
 		return 0;
 }
