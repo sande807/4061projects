@@ -83,7 +83,15 @@ int main(int argc, char **argv)
         num_dispatcher = (int)* argv[2];
         num_workers = (int)* argv[3];
         
-        //create an array of dispatcher and worker threads from those values
+        //make sure number of each threads doesn't exceed 100
+        if (num_dispatcher > MAX_THREADS) {
+			num_dispatcher = MAX_THREADS ;
+		}
+		if (num_workers < MAX_THREADS) {
+			num_workers = MAX_THREADS ;
+		}
+		
+		//create an array of dispatcher and worker threads from those values
 		pthread_t d_threads[num_dispatcher];
 		pthread_t w_threads[num_workers];
 		
