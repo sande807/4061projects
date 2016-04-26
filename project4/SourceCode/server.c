@@ -18,6 +18,10 @@
 #define MAX_QUEUE_SIZE 100
 #define MAX_REQUEST_LENGTH 64
 
+//make these variables global so they can be used in the worker and dispatch threads
+int num_workers, num_dispatcher, queuesz;
+struct request_queue *q;
+
 //Structure for queue.
 typedef struct request_queue
 {
@@ -26,9 +30,6 @@ typedef struct request_queue
 } request_queue_t;
 
 void * dispatch(void * arg){
-	int fd;
-	char *file;
-	
 	//the dispatcher thread will continuously run these operations
 	//it will attempt to get a connnection using the accept_connection function which will return a file descriptor
 	//if that is unsuccessful it will exit thread
@@ -38,7 +39,7 @@ void * dispatch(void * arg){
 		
 		//get file descriptor from accept_connection()
 		//if fd is negative then error, thread should exit
-		if( fd = accept_connection() < 0 )
+		if( q[1].m_socket = accept_connection() < 0 )
 		{
 			pthread_exit(NULL);
 		}
@@ -46,7 +47,7 @@ void * dispatch(void * arg){
 		//use file descriptor to get request. if return value == zero then success
 		//if success then it will continue to do work. if failure it will skip this and continue
 		//file is undefined before this point. if successful the filename will be stored in the file
-		if(get_request(fd, file) == 0)
+		if(get_request(q[1].m_socket, q[1].m_szRequest) == 0)
 		{
 			//place request in a queue for the worker to pick up
 		}
@@ -60,8 +61,6 @@ void * worker(void * arg){
         return NULL;
 }
 
-//make these variables global so they can be used in the worker and dispatch threads?
-int num_workers, num_dispatcher;
 
 int main(int argc, char **argv)
 {
@@ -82,6 +81,7 @@ int main(int argc, char **argv)
         //get number of dispatchers and workers from argv
         num_dispatcher = (int)* argv[2];
         num_workers = (int)* argv[3];
+        queuesz = (int)* argv[4];
         
         //make sure number of each threads doesn't exceed 100
         if (num_dispatcher > MAX_THREADS) {
@@ -91,7 +91,11 @@ int main(int argc, char **argv)
 			num_workers = MAX_THREADS ;
 		}
 		
-		//create an array of dispatcher and worker threads from those values
+        //make an array of stuff
+        struct request_queue queue[queuesz];
+        q = queue;
+        
+        //create an array of dispatcher and worker threads from those values
 		pthread_t d_threads[num_dispatcher];
 		pthread_t w_threads[num_workers];
 		
