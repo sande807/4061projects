@@ -52,13 +52,46 @@ void * dispatch(void * arg){
 			//place request in a queue for the worker to pick up
 		}
 	}
+	
     return NULL;
 }
 
 void * worker(void * arg){
-	//get request from queue then either return request or return the error		
+	//get request from queue then either return request or return the error
+	//pick up request from queue and server
+	
+	/*int c = 0 ;
+	
+	//get id?
+	
+	while(//something) {
 		
-        return NULL;
+		//lock
+		pthread_mutex_lock(//current worker thread) ;
+		
+		//do work		
+		return_result(int fd, char *content_type, char *buf, int numbytes) ;
+		return_error(int fd, char *buf) ;
+		
+		//c++? ;
+		
+		//unlock
+		pthread_mutex_unlock(//current worker thread) ;
+		
+	}*/
+	
+	while(1) {
+		
+		pthread_mutex_lock(w_threads[0]) ;
+		
+		if (return_result(q[0].m_socket, /*content type?*/, (char) arg, /*numbytes?*/ != 0) {
+			return_error(q[0].m_socket, (char) arg) ;
+		}
+		
+		pthread_mutex_unlock(w_threads[0]) ;
+		
+		
+	return NULL;
 }
 
 
