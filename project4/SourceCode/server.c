@@ -22,6 +22,9 @@
 int num_workers, num_dispatcher, queuesz;
 struct request_queue *q;
 
+//define buffer
+//buffer_t buf[BUFSIZE] ;
+
 //Structure for queue.
 typedef struct request_queue
 {
@@ -53,42 +56,34 @@ void * dispatch(void * arg){
 		}
 	}
 	
+	//do we need to detach threads after we are done?
+	
     return NULL;
 }
 
 void * worker(void * arg){
 	//get request from queue then either return request or return the error
 	//pick up request from queue and server
+	//need to lock and unlock to prevent issues
 	
-	/*int c = 0 ;
-	
-	//get id?
-	
-	while(//something) {
-		
-		//lock
-		pthread_mutex_lock(//current worker thread) ;
-		
-		//do work		
-		return_result(int fd, char *content_type, char *buf, int numbytes) ;
-		return_error(int fd, char *buf) ;
-		
-		//c++? ;
-		
-		//unlock
-		pthread_mutex_unlock(//current worker thread) ;
-		
-	}*/
+	/* CONTENT TYPE 
+	 *	.html/.htm - "text/html"
+	 * 	.jpg - "image/jpeg"
+	 * 	.gif - "image/gif"
+	 * 	other - "text/plain"
+	 */
 	
 	while(1) {
 		
-		pthread_mutex_lock(w_threads[0]) ;
+		//lock
 		
-		if (return_result(q[0].m_socket, /*content type?*/, (char) arg, /*numbytes?*/ != 0) {
-			return_error(q[0].m_socket, (char) arg) ;
+		if (return_result(q[0].m_socket, /*content type?*/, arg, /*numbytes?*/) != 0) {
+			return_error(q[0].m_socket, arg) ;
 		}
 		
-		pthread_mutex_unlock(w_threads[0]) ;
+		//unlock
+		
+	}
 		
 		
 	return NULL;
