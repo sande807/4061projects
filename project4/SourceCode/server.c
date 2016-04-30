@@ -21,12 +21,18 @@
 //make these variables global so they can be used in the worker and dispatch threads
 int num_workers, num_dispatcher, queuesz;
 struct request_queue *q;
+int *slot;
+int currentslot;
+pthread_mutex_t lock;
+pthread_cond_t cv;
+char *path;
 
 //Structure for queue.
 typedef struct request_queue
 {
         int   	m_socket;
         char   	m_szRequest[MAX_REQUEST_LENGTH];
+        char	m_filename[1024];
 } request_queue_t;
 
 void * dispatch(void * arg){
@@ -35,21 +41,35 @@ void * dispatch(void * arg){
 	//if that is unsuccessful it will exit thread
 	//then it will try to get request, if that fails it will go to the next iteration of the loop
 	//if successful it will send the request to the worker thread
+	printf("dispatcher begin\n");
 	while(1){
-		
+		int i=0;
+		//find an open space in the queue
+		while(1){//infinitely looks for an open slot
+			if(slot[i] == 0){//if the slot is 0 it's open
+				slot[i] = 1;//set this slot to 1 now cause we are going to use it
+				break;//break, now i equals the slot
+			}
+			i++;//we did not find an open slot so update i
+			if(i==queuesz){//if i=queuesz we've gone too far
+				i=0;//
+			}
+		}
 		//get file descriptor from accept_connection()
 		//if fd is negative then error, thread should exit
-		if( q[1].m_socket = accept_connection() < 0 )
+		if( q[i].m_socket = accept_connection() < 0 )
 		{
+			slot[i] = 0;//free up slot before exit;
 			pthread_exit(NULL);
 		}
 		
 		//use file descriptor to get request. if return value == zero then success
 		//if success then it will continue to do work. if failure it will skip this and continue
 		//file is undefined before this point. if successful the filename will be stored in the file
-		if(get_request(q[1].m_socket, q[1].m_szRequest) == 0)
+		if(get_request(q[i].m_socket, q[i].m_filename) == 0)
 		{
-			//place request in a queue for the worker to pick up
+			currentslot=i;
+			pthread_cond_signal(&cv);//send a signal via the condition variable
 		}
 	}
 	
@@ -57,38 +77,58 @@ void * dispatch(void * arg){
 }
 
 void * worker(void * arg){
-	//get request from queue then either return request or return the error
-	//pick up request from queue and server
 	
-	/*int c = 0 ;
-	
-	//get id?
-	
-	while(//something) {
-		
-		//lock
-		pthread_mutex_lock(//current worker thread) ;
-		
-		//do work		
-		return_result(int fd, char *content_type, char *buf, int numbytes) ;
-		return_error(int fd, char *buf) ;
-		
-		//c++? ;
-		
-		//unlock
-		pthread_mutex_unlock(//current worker thread) ;
-		
-	}*/
+	printf("worker begin\n");
+	int i = 0;
+	int numbytes =0;
+	char *filename;
+	char *type;
+	char *gif = "image/gif";
+	char *jpeg = "image/jpeg";
+	char *plain = "test/plain";
+	char *html = "text/html";
+	char *buf;
 	
 	while(1) {
+		//get lock
+		pthread_mutex_lock(&lock) ;
 		
-		pthread_mutex_lock(w_threads[0]) ;
+		//wait for condition variable from dispatch which says theres a request ready for work
+		pthread_cond_wait(&cv, &lock);
 		
-		if (return_result(q[0].m_socket, /*content type?*/, (char) arg, /*numbytes?*/ != 0) {
-			return_error(q[0].m_socket, (char) arg) ;
+		//figure out the current slot
+		i=currentslot;
+		
+		filename = q[i].m_filename;
+		//figure out q[i] content type
+		if(strncmp(filename, gif, 9)==0){
+			type = gif;
+		}else if(strncmp(filename, jpeg, 10)==0){
+			type = jpeg;
+		}else if(strncmp(filename, plain, 10)==0){
+			type = plain;
+		}else if(strncmp(filename, html, 9)==0){
+			type = html;
+		}else{//didn't match any filetype
+			buf = "filetype does not match known files\n";
+			return_error(q[i].m_socket, buf);//return error
+			slot[i] = 0;//free up slot
+			continue;//go to next iteration of while loop. i.e. skip everything else
 		}
 		
-		pthread_mutex_unlock(w_threads[0]) ;
+		//open the file and put it in the buffer and then figure out the number of bytes and set numbytes to that
+		//use path
+		
+		
+		//return the result to the user. if there is a failure return error
+		if (return_result(q[0].m_socket, type, buf, numbytes) != 0) {
+			//set buf to the error message apparently
+			return_error(q[0].m_socket, buf);
+		}
+		
+		slot[i] = 0;//free slot
+		pthread_mutex_unlock(&lock) ;//unlock
+	}
 		
 		
 	return NULL;
@@ -110,6 +150,9 @@ int main(int argc, char **argv)
         int p = (int)* argv[0] ;
         init(p) ;
         
+        //get path
+        path = argv[1];
+        
         //need to create dispatcher threads and worker threads
         //get number of dispatchers and workers from argv
         num_dispatcher = (int)* argv[2];
@@ -128,13 +171,24 @@ int main(int argc, char **argv)
         struct request_queue queue[queuesz];
         q = queue;
         
+        //make an array to decide if a slot is empty or not
+        int array[queuesz];
+        int i;
+        for(i=0;i<queuesz;i++){
+			array[i]=0;
+		}
+		slot = array;
+		
+		//set up locks and condition variables
+		pthread_mutex_init(&lock, NULL);
+		pthread_cond_init (&cv, NULL);
+        
         //create an array of dispatcher and worker threads from those values
 		pthread_t d_threads[num_dispatcher];
 		pthread_t w_threads[num_workers];
 		
 		//for each dispatcher and worker thread create the thread and join it
 		//for dispatcher threads call the function dispatch
-		int i;
         for(i=0; i<num_dispatcher; i++){
 			pthread_create(&d_threads[i], NULL, dispatch, NULL);
 			pthread_join(d_threads[i], NULL);
