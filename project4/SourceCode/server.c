@@ -27,6 +27,9 @@ pthread_mutex_t lock;
 pthread_cond_t cv;
 char *path;
 
+//define buffer
+//buffer_t buf[BUFSIZE] ;
+
 //Structure for queue.
 typedef struct request_queue
 {
@@ -72,6 +75,8 @@ void * dispatch(void * arg){
 			pthread_cond_signal(&cv);//send a signal via the condition variable
 		}
 	}
+	
+	//do we need to detach threads after we are done?
 	
     return NULL;
 }
