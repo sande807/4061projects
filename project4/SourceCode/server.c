@@ -27,9 +27,6 @@ pthread_mutex_t lock;
 pthread_cond_t cv;
 char *path;
 
-//define buffer
-//buffer_t buf[BUFSIZE] ;
-
 //Structure for queue.
 typedef struct request_queue
 {
@@ -48,34 +45,38 @@ void * dispatch(void * arg){
 	while(1){
 		int i=0;
 		//find an open space in the queue
-		while(1){//infinitely looks for an open slot
+		while(1){
+			//infinitely looks for an open slot
 			if(slot[i] == 0){//if the slot is 0 it's open
 				slot[i] = 1;//set this slot to 1 now cause we are going to use it
 				break;//break, now i equals the slot
 			}
-			i++;//we did not find an open slot so update i
+			i++;
+			//we did not find an open slot so update i
 			if(i==queuesz){//if i=queuesz we've gone too far
 				i=0;//
 			}
 		}
+		printf("i = %d, continuing to accept connection\n", i);
 		//get file descriptor from accept_connection()
 		//if fd is negative then error, thread should exit
-		if( q[i].m_socket = accept_connection() < 0 )
+		if(q[i].m_socket = accept_connection() < 0)
 		{
+			printf("FAILURE\n");
 			slot[i] = 0;//free up slot before exit;
 			pthread_exit(NULL);
 		}
-		
+		printf("are we there yet?\n") ;
 		//use file descriptor to get request. if return value == zero then success
 		//if success then it will continue to do work. if failure it will skip this and continue
 		//file is undefined before this point. if successful the filename will be stored in the file
 		if(get_request(q[i].m_socket, q[i].m_filename) == 0)
 		{
+			printf("request successful\n") ;
 			currentslot=i;
 			pthread_cond_signal(&cv);//send a signal via the condition variable
 		}
 	}
-	
 	//do we need to detach threads after we are done?
 	
     return NULL;
@@ -85,7 +86,7 @@ void * worker(void * arg){
 	
 	printf("worker begin\n");
 	int i = 0;
-	int numbytes =0;
+	int numbytes = 0;
 	char *filename;
 	char *type;
 	char *gif = "image/gif";
@@ -114,7 +115,8 @@ void * worker(void * arg){
 			type = plain;
 		}else if(strncmp(filename, html, 9)==0){
 			type = html;
-		}else{//didn't match any filetype
+		}else{
+			//didn't match any filetype
 			buf = "filetype does not match known files\n";
 			return_error(q[i].m_socket, buf);//return error
 			slot[i] = 0;//free up slot
@@ -124,7 +126,6 @@ void * worker(void * arg){
 		//open the file and put it in the buffer and then figure out the number of bytes and set numbytes to that
 		//use path
 		
-		
 		//return the result to the user. if there is a failure return error
 		if (return_result(q[0].m_socket, type, buf, numbytes) != 0) {
 			//set buf to the error message apparently
@@ -133,12 +134,10 @@ void * worker(void * arg){
 		
 		slot[i] = 0;//free slot
 		pthread_mutex_unlock(&lock) ;//unlock
-	}
-		
+	}	
 		
 	return NULL;
 }
-
 
 int main(int argc, char **argv)
 {
@@ -150,25 +149,26 @@ int main(int argc, char **argv)
         }
 
         printf("Call init() first and make a dispather and worker threads\n");
-        
+        int i;
         //get port, then initialize
-        int p = (int)* argv[0] ;
+        int p = atoi(argv[1] );
         init(p) ;
         
         //get path
-        path = argv[1];
+        path = argv[2];
         
         //need to create dispatcher threads and worker threads
         //get number of dispatchers and workers from argv
-        num_dispatcher = (int)* argv[2];
-        num_workers = (int)* argv[3];
-        queuesz = (int)* argv[4];
-        
+        num_dispatcher = atoi(argv[3]);
+        num_workers = atoi(argv[4]);
+        queuesz = atoi(argv[5]);
+        printf("port: %d, dis: %d, work: %d, q: %d\n", p, num_dispatcher,num_workers,queuesz);
+ 
         //make sure number of each threads doesn't exceed 100
         if (num_dispatcher > MAX_THREADS) {
 			num_dispatcher = MAX_THREADS ;
 		}
-		if (num_workers < MAX_THREADS) {
+		if (num_workers > MAX_THREADS) {
 			num_workers = MAX_THREADS ;
 		}
 		
@@ -178,7 +178,7 @@ int main(int argc, char **argv)
         
         //make an array to decide if a slot is empty or not
         int array[queuesz];
-        int i;
+        //int i;
         for(i=0;i<queuesz;i++){
 			array[i]=0;
 		}
@@ -196,13 +196,22 @@ int main(int argc, char **argv)
 		//for dispatcher threads call the function dispatch
         for(i=0; i<num_dispatcher; i++){
 			pthread_create(&d_threads[i], NULL, dispatch, NULL);
-			pthread_join(d_threads[i], NULL);
 		}
 		//for the worker threads call the function worker
         for(i=0; i<num_workers; i++){
 			pthread_create(&w_threads[i], NULL, worker, NULL);
+		}
+		
+		for(i=0; i<num_dispatcher; i++){
+			pthread_join(d_threads[i], NULL);
+		}
+		
+		for(i=0; i<num_workers; i++){
 			pthread_join(w_threads[i], NULL);
 		}
+		
+		
+		
 		
 		return 0;
 }
