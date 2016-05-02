@@ -87,12 +87,14 @@ void * worker(void * arg){
 	int i = 0;
 	int numbytes =0;
 	char *filename;
+	char *filepath;
 	char *type;
 	char *gif = "image/gif";
 	char *jpeg = "image/jpeg";
 	char *plain = "test/plain";
 	char *html = "text/html";
 	char *buf;
+	FILE *fp;
 	
 	while(1) {
 		//get lock
@@ -123,7 +125,13 @@ void * worker(void * arg){
 		
 		//open the file and put it in the buffer and then figure out the number of bytes and set numbytes to that
 		//use path
-		
+		//filepath = path+"/"+type+filename
+		strcpy(filepath, path);
+		strcat(filepath, "/");
+		strcat(filepath, type);
+		strcat(filepath, filename);
+		fp = fopen(filepath,"rb");
+		//fread(buf,1,str_size,fp);
 		
 		//return the result to the user. if there is a failure return error
 		if (return_result(q[0].m_socket, type, buf, numbytes) != 0) {
