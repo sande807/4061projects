@@ -61,13 +61,18 @@ void * dispatch(void * arg){
 		printf("i = %d, continuing to accept connection\n", i);
 		//get file descriptor from accept_connection()
 		//if fd is negative then error, thread should exit
-		if(q[i].m_socket = accept_connection() < 0)
+		/*
+		 * WE MAY NEED SOME LOCKS AROUND THIS AREA. WORKS FOR ONE REQUEST THOUGH.
+		 * CAPS LOCK MEANS I'M SHOUTING
+		 * 
+		 */
+		if((q[i].m_socket = accept_connection()) < 0)
 		{
 			printf("FAILURE\n");
 			slot[i] = 0;//free up slot before exit;
 			pthread_exit(NULL);
 		}
-		printf("after accept connection, socket = %d\n",q[i].m_socket) ;
+		printf("accepted connection, socket: %d, moving to get request\n", q[i].m_socket) ;
 		//use file descriptor to get request. if return value == zero then success
 		//if success then it will continue to do work. if failure it will skip this and continue
 		//file is undefined before this point. if successful the filename will be stored in the file
@@ -75,6 +80,7 @@ void * dispatch(void * arg){
 		if(get_request(q[i].m_socket, q[i].m_filename) == 0)
 		{
 			printf("request successful\n") ;
+			printf("%s\n",q[i].m_filename);
 			currentslot=i;
 			pthread_cond_signal(&cv);//send a signal via the condition variable
 		}
@@ -91,12 +97,14 @@ void * worker(void * arg){
 	int i = 0;
 	int numbytes = 0;
 	char *filename;
+	char *filepath = (char *) malloc(1024);
 	char *type;
-	char *gif = "image/gif";
-	char *jpeg = "image/jpeg";
-	char *plain = "test/plain";
-	char *html = "text/html";
+	char *gif = "/image/gif";
+	char *jpeg = "/image/jpeg";
+	char *plain = "/text/plain";
+	char *html = "/text/html";
 	char *buf;
+	FILE *fp;
 	
 	while(1) {
 		//get lock
@@ -104,19 +112,21 @@ void * worker(void * arg){
 		
 		//wait for condition variable from dispatch which says theres a request ready for work
 		pthread_cond_wait(&cv, &lock);
+		printf("after condition\n");
 		
 		//figure out the current slot
 		i=currentslot;
 		
 		filename = q[i].m_filename;
+		printf("filename: %s\n",filename);
 		//figure out q[i] content type
-		if(strncmp(filename, gif, 9)==0){
+		if(strncmp(filename, gif, 10)==0){
 			type = gif;
-		}else if(strncmp(filename, jpeg, 10)==0){
+		}else if(strncmp(filename, jpeg, 11)==0){
 			type = jpeg;
-		}else if(strncmp(filename, plain, 10)==0){
+		}else if(strncmp(filename, plain, 11)==0){
 			type = plain;
-		}else if(strncmp(filename, html, 9)==0){
+		}else if(strncmp(filename, html, 10)==0){
 			type = html;
 		}else{
 			//didn't match any filetype
@@ -125,14 +135,23 @@ void * worker(void * arg){
 			slot[i] = 0;//free up slot
 			continue;//go to next iteration of while loop. i.e. skip everything else
 		}
-		
+		printf("file type: %s\n", type);
 		//open the file and put it in the buffer and then figure out the number of bytes and set numbytes to that
 		//use path
+		//filepath = path+"/"+type+filename
+		strcpy(filepath, "0");
+		strcpy(filepath, path);
+		strcat(filepath, filename);
+		printf("filepath after: %s\n",filepath);
+		printf("path after: %s\n",path);
+		fp = fopen(filepath,"rb");
+		//fread(buf,1,str_size,fp);
 		
 		
 		//return the result to the user. if there is a failure return error
 		if (return_result(q[0].m_socket, type, buf, numbytes) != 0) {
 			//set buf to the error message apparently
+			printf("return result failed\n");
 			return_error(q[0].m_socket, buf);
 		}
 		
