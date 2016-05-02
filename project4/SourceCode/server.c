@@ -41,6 +41,7 @@ void * dispatch(void * arg){
 	//if that is unsuccessful it will exit thread
 	//then it will try to get request, if that fails it will go to the next iteration of the loop
 	//if successful it will send the request to the worker thread
+	
 	printf("dispatcher begin\n");
 	while(1){
 		int i=0;
@@ -66,16 +67,18 @@ void * dispatch(void * arg){
 			slot[i] = 0;//free up slot before exit;
 			pthread_exit(NULL);
 		}
-		printf("are we there yet?\n") ;
+		printf("after accept connection, socket = %d\n",q[i].m_socket) ;
 		//use file descriptor to get request. if return value == zero then success
 		//if success then it will continue to do work. if failure it will skip this and continue
 		//file is undefined before this point. if successful the filename will be stored in the file
+
 		if(get_request(q[i].m_socket, q[i].m_filename) == 0)
 		{
 			printf("request successful\n") ;
 			currentslot=i;
 			pthread_cond_signal(&cv);//send a signal via the condition variable
 		}
+		printf("get request failed i guess\n");
 	}
 	//do we need to detach threads after we are done?
 	
@@ -84,7 +87,7 @@ void * dispatch(void * arg){
 
 void * worker(void * arg){
 	
-	printf("worker begin\n");
+	printf("worker begin\n" );
 	int i = 0;
 	int numbytes = 0;
 	char *filename;
@@ -125,6 +128,7 @@ void * worker(void * arg){
 		
 		//open the file and put it in the buffer and then figure out the number of bytes and set numbytes to that
 		//use path
+		
 		
 		//return the result to the user. if there is a failure return error
 		if (return_result(q[0].m_socket, type, buf, numbytes) != 0) {
@@ -191,8 +195,8 @@ int main(int argc, char **argv)
         //create an array of dispatcher and worker threads from those values
 		pthread_t d_threads[num_dispatcher];
 		pthread_t w_threads[num_workers];
-		
-		//for each dispatcher and worker thread create the thread and join it
+	
+		//create both worker and dispatcher threads
 		//for dispatcher threads call the function dispatch
         for(i=0; i<num_dispatcher; i++){
 			pthread_create(&d_threads[i], NULL, dispatch, NULL);
@@ -202,6 +206,7 @@ int main(int argc, char **argv)
 			pthread_create(&w_threads[i], NULL, worker, NULL);
 		}
 		
+		//join both threads
 		for(i=0; i<num_dispatcher; i++){
 			pthread_join(d_threads[i], NULL);
 		}
@@ -209,9 +214,6 @@ int main(int argc, char **argv)
 		for(i=0; i<num_workers; i++){
 			pthread_join(w_threads[i], NULL);
 		}
-		
-		
-		
 		
 		return 0;
 }
