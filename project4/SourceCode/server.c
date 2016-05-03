@@ -93,6 +93,7 @@ void * worker(void * arg){
 	char *jpg = "/image/jpg";
 	char *plain = "/text/plain";
 	char *html = "/text/html";
+	char *htm = "/text/htm" ;
 	char *buf;
 	FILE *fp;
 	
