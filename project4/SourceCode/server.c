@@ -93,7 +93,7 @@ void * worker(void * arg){
 	char *filepath = (char *) malloc(1024);
 	char *type;
 	char *gif = "/image/gif";
-	char *jpeg = "/image/jpg";
+	char *jpg = "/image/jpg";
 	char *plain = "/text/plain";
 	char *html = "/text/html";
 	char *buf;
@@ -114,8 +114,8 @@ void * worker(void * arg){
 		//figure out q[i] content type
 		if(strncmp(filename, gif, strlen(gif))==0){
 			type = gif;
-		}else if(strncmp(filename, jpeg, strlen(jpeg))==0){
-			type = jpeg;
+		}else if(strncmp(filename, jpg, strlen(jpg))==0){
+			type = jpg;
 		}else if(strncmp(filename, plain, strlen(plain))==0){
 			type = plain;
 		}else if(strncmp(filename, html, strlen(html))==0){
