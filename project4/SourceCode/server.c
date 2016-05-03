@@ -91,6 +91,7 @@ void * worker(void * arg){
 	char *jpg = "/image/jpg";
 	char *plain = "/text/plain";
 	char *html = "/text/html";
+	char *htm = "/text/htm" ;
 	char *buf;
 	FILE *fp;
 	
@@ -113,7 +114,7 @@ void * worker(void * arg){
 			type = jpg;
 		}else if(strncmp(filename, plain, strlen(plain))==0){
 			type = plain;
-		}else if(strncmp(filename, html, strlen(html))==0){
+		}else if(strncmp(filename, html, strlen(html))==0 || strncmp(filename, htm, strlen(htm))) {
 			type = html;
 		}else{
 			//didn't match any filetype
