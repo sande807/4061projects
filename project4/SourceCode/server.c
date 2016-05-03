@@ -152,6 +152,7 @@ void * worker(void * arg){
 		printf("numbytes: %d\n",numbytes);
 		fseek(fp, 0L, SEEK_SET);//go back to beginning of file
 		printf("after reset to beginning\n");
+		buf = (char *) malloc(numbytes);
 		fread(buf,numbytes,1,fp);//read the file into the buffer
 		printf("after read\n");
 		
@@ -165,6 +166,7 @@ void * worker(void * arg){
 			printf("return result successful\n");
 		}
 		
+		free(buf);
 		slot[i] = 0;//free slot
 		pthread_mutex_unlock(&lock) ;//unlock
 	}	
