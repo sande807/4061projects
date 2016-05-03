@@ -30,23 +30,22 @@ pthread_cond_t cv;
 char *path;
 
 //Structure for queue.
-typedef struct request_queue
-{
+typedef struct request_queue {
         int   	m_socket;
         char   	m_szRequest[MAX_REQUEST_LENGTH];
         char	m_filename[1024];
 } request_queue_t;
 
-void * dispatch(void * arg){
+void * dispatch(void * arg) {
 	//the dispatcher thread will continuously run these operations
 	//it will attempt to get a connnection using the accept_connection function which will return a file descriptor
 	//if that is unsuccessful it will exit thread
 	//then it will try to get request, if that fails it will go to the next iteration of the loop
 	//if successful it will send the request to the worker thread
-	while(1){
+	while(1) {
 		int i=0;
 		//find an open space in the queue
-		while(1){
+		while(1) {
 			//infinitely looks for an open slot
 			if(slot[i] == 0){//if the slot is 0 it's open
 				slot[i] = 1;//set this slot to 1 now cause we are going to use it
@@ -54,8 +53,8 @@ void * dispatch(void * arg){
 			}
 			i++;
 			//we did not find an open slot so update i
-			if(i==queuesz){//if i=queuesz we've gone too far
-				i=0;//
+			if(i==queuesz){
+				i=0;
 			}
 		}
 		//get file descriptor from accept_connection()
@@ -107,7 +106,6 @@ void * worker(void * arg){
 		
 		//get the filename
 		filename = q[i].m_filename;
-		
 		//figure out q[i] content type
 		if(strncmp(filename, gif, strlen(gif))==0){
 			type = gif;
@@ -130,8 +128,8 @@ void * worker(void * arg){
 			pthread_mutex_unlock(&lock) ;//unlock
 			continue;//go to next iteration of while loop. i.e. skip everything else
 		}
-		
-		//determine filepath and open the file
+		//open the file and put it in the buffer and then figure out the number of bytes and set numbytes to that
+		//use path
 		strcpy(filepath, "0");
 		strcpy(filepath, path);
 		strcat(filepath, filename);
@@ -173,16 +171,13 @@ void * worker(void * arg){
 	return NULL;
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
         //Error check first.
-        if(argc != 6 && argc != 7)
-        {
+        if(argc != 6 && argc != 7) {
                 printf("usage: %s port path num_dispatcher num_workers queue_length [cache_size]\n", argv[0]);
                 return -1;
         }
 
-        printf("Call init() first and make a dispather and worker threads\n");
         int i;
         
         //get port, then initialize
@@ -197,7 +192,6 @@ int main(int argc, char **argv)
         num_dispatcher = atoi(argv[3]);
         num_workers = atoi(argv[4]);
         queuesz = atoi(argv[5]);
-        printf("port: %d, dis: %d, work: %d, q: %d\n", p, num_dispatcher,num_workers,queuesz);
  
         //make sure number of each threads doesn't exceed 100
         if (num_dispatcher > MAX_THREADS) {
@@ -223,7 +217,7 @@ int main(int argc, char **argv)
 		pthread_cond_init (&cv, NULL);
 		
 		//open log for writing to
-		log_f = fopen("web_server_log.txt","w");
+		log_f = fopen("web_server_log","w");
         
         //create an array of dispatcher and worker threads from those values
 		pthread_t d_threads[num_dispatcher];
@@ -247,6 +241,8 @@ int main(int argc, char **argv)
 		for(i=0; i<num_workers; i++){
 			pthread_join(w_threads[i], NULL);
 		}
+		printf("closing file\n");
+		fclose(log_f);
 		
 		return 0;
 }
