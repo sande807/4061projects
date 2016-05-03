@@ -23,6 +23,7 @@ int num_workers, num_dispatcher, queuesz;
 struct request_queue *q;
 int *slot;
 int currentslot;
+int total=0;
 pthread_mutex_t lock;
 pthread_cond_t cv;
 char *path;
@@ -40,7 +41,6 @@ void * dispatch(void * arg) {
 	//if that is unsuccessful it will exit thread
 	//then it will try to get request, if that fails it will go to the next iteration of the loop
 	//if successful it will send the request to the worker thread
-	
 	while(1) {
 		int i=0;
 		//find an open space in the queue
@@ -58,17 +58,22 @@ void * dispatch(void * arg) {
 		}
 		//get file descriptor from accept_connection()
 		//if fd is negative then error, thread should exit
-		if((q[i].m_socket = accept_connection()) < 0) {
-			//free up slot
-			slot[i] = 0;
+		/*
+		 * WE MAY NEED SOME LOCKS AROUND THIS AREA. WORKS FOR ONE REQUEST THOUGH.
+		 * CAPS LOCK MEANS I'M SHOUTING
+		 * 
+		 */
+		if((q[i].m_socket = accept_connection()) < 0)
+		{
+			slot[i] = 0;//free up slot before exit;
 			pthread_exit(NULL);
 		}
-		
 		//use file descriptor to get request. if return value == zero then success
 		//if success then it will continue to do work. if failure it will skip this and continue
 		//file is undefined before this point. if successful the filename will be stored in the file
-		if(get_request(q[i].m_socket, q[i].m_filename) == 0) {
-			printf("%s\n",q[i].m_filename);
+
+		if(get_request(q[i].m_socket, q[i].m_filename) == 0)
+		{
 			currentslot=i;
 			pthread_cond_signal(&cv);//send a signal via the condition variable
 		}
@@ -77,10 +82,11 @@ void * dispatch(void * arg) {
     return NULL;
 }
 
-void * worker(void * arg) {
-	
+void * worker(void * arg){
+	int threadid = pthread_self();
 	int i = 0;
 	int numbytes = 0;
+	int num_requests_handled = 0;
 	char *filename;
 	char *filepath = (char *) malloc(1024);
 	char *type;
@@ -97,15 +103,12 @@ void * worker(void * arg) {
 		
 		//wait for condition variable from dispatch which says theres a request ready for work
 		pthread_cond_wait(&cv, &lock);
-		printf("after condition\n");
 		
 		//figure out the current slot
 		i=currentslot;
 		
-		filename = q[i].m_filename;
-		printf("filename: %s\n",filename);
-		
-		//get content type
+		filename = q[i].m_filename;		
+		//figure out q[i] content type
 		if(strncmp(filename, gif, strlen(gif))==0){
 			type = gif;
 		}else if(strncmp(filename, jpg, strlen(jpg))==0){
@@ -116,38 +119,33 @@ void * worker(void * arg) {
 			type = html;
 		}else{
 			//didn't match any filetype
-			buf = "Filetype does not match known types\n";
-			return_error(q[i].m_socket, buf) ;
-			slot[i] = 0;
-			continue;
+			buf = "filetype does not match known files\n";
+			return_error(q[i].m_socket, buf);//return error
+			slot[i] = 0;//free up slot
+			pthread_mutex_unlock(&lock) ;//unlock
+			continue;//go to next iteration of while loop. i.e. skip everything else
 		}
-		printf("file type: %s\n", type);
 		//open the file and put it in the buffer and then figure out the number of bytes and set numbytes to that
 		//use path
 		strcpy(filepath, "0");
 		strcpy(filepath, path);
 		strcat(filepath, filename);
-		printf("filepath after: %s\n",filepath);
-		printf("path after: %s\n",path);
 		fp = fopen(filepath,"rb");
-		printf("after open\n");
 		//figure out number of bytes
 		fseek(fp, 0L, SEEK_END);//find end of file
-		printf("after found end\n");
 		numbytes=ftell(fp);//get number of bytes
-		printf("numbytes: %d\n",numbytes);
 		fseek(fp, 0L, SEEK_SET);//go back to beginning of file
-		printf("after reset to beginning\n");
 		buf = (char *) malloc(numbytes);
 		fread(buf,numbytes,1,fp);//read the file into the buffer
-		printf("after read\n");
 		
 		//return the result to the user. if there is a failure return error
 		if (return_result(q[i].m_socket, type, buf, numbytes) != 0) {
 			//set buf to the error message apparently
-			printf("return result failed\n");
+			buf = "failure to return result";
 			return_error(q[i].m_socket, buf);
 		}
+		
+		num_requests_handled++;
 		free(buf);
 		slot[i] = 0;//free slot
 		pthread_mutex_unlock(&lock) ;//unlock
