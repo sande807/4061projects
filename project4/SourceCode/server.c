@@ -121,8 +121,9 @@ void * worker(void * arg){
 			return_error(q[i].m_socket, buf);//return error
 			num_requests_handled++;//update the number of requests this thread has handled
 			//write to the log
+			log_f = fopen("web_server_log","a");
 			fprintf(log_f, "[%d][%d][%d][%s][%s]\n", threadid,num_requests_handled,q[i].m_socket,filename,buf);
-			printf("[%d][%d][%d][%s][%s]\n", threadid,num_requests_handled,q[i].m_socket,filename,buf);
+			fclose(log_f);
 			
 			slot[i] = 0;//free up slot
 			pthread_mutex_unlock(&lock) ;//unlock
@@ -148,9 +149,10 @@ void * worker(void * arg){
 			buf = "failure to return result";
 			num_requests_handled++;//update the number of requests this thread has handled
 			//write to the log
+			//open log for writing to
+			log_f = fopen("web_server_log","a");
 			fprintf(log_f, "[%d][%d][%d][%s][%s]\n", threadid,num_requests_handled,q[i].m_socket,filename,buf);
-			printf("[%d][%d][%d][%s][%s]\n", threadid,num_requests_handled,q[i].m_socket,filename,buf);
-			
+			fclose(log_f);
 			//return error
 			return_error(q[i].m_socket, buf);
 		}else{
@@ -158,8 +160,10 @@ void * worker(void * arg){
 			num_requests_handled++;//update the number of requests this thread has handled
 		
 			//write to the log
+			//open log for writing to
+			log_f = fopen("web_server_log","a");
 			fprintf(log_f, "[%d][%d][%d][%s][%d]\n", threadid,num_requests_handled,q[i].m_socket,filename,numbytes);
-			printf("[%d][%d][%d][%s][%d]\n", threadid,num_requests_handled,q[i].m_socket,filename,numbytes);
+			fclose(log_f);
 		}
 		
 		//free up stuff and unlock
@@ -216,8 +220,10 @@ int main(int argc, char **argv) {
 		pthread_mutex_init(&lock, NULL);
 		pthread_cond_init (&cv, NULL);
 		
-		//open log for writing to
+		//erase anything in the file
 		log_f = fopen("web_server_log","w");
+		fprintf(log_f, "\n");
+		fclose(log_f);
         
         //create an array of dispatcher and worker threads from those values
 		pthread_t d_threads[num_dispatcher];
@@ -241,8 +247,6 @@ int main(int argc, char **argv) {
 		for(i=0; i<num_workers; i++){
 			pthread_join(w_threads[i], NULL);
 		}
-		printf("closing file\n");
-		fclose(log_f);
 		
 		return 0;
 }
