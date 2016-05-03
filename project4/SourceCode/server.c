@@ -99,7 +99,7 @@ void * worker(void * arg){
 	char *filepath = (char *) malloc(1024);
 	char *type;
 	char *gif = "/image/gif";
-	char *jpeg = "/image/jpg";
+	char *jpg = "/image/jpg";
 	char *plain = "/text/plain";
 	char *html = "/text/html";
 	char *buf;
@@ -119,13 +119,13 @@ void * worker(void * arg){
 		filename = q[i].m_filename;
 		printf("filename: %s\n",filename);
 		//figure out q[i] content type
-		if(strncmp(filename, gif, 10)==0){
+		if(strncmp(filename, gif, strlen(gif))==0){
 			type = gif;
-		}else if(strncmp(filename, jpeg, 11)==0){
-			type = jpeg;
-		}else if(strncmp(filename, plain, 11)==0){
+		}else if(strncmp(filename, jpg, strlen(jpg))==0){
+			type = jpg;
+		}else if(strncmp(filename, plain, strlen(plain))==0){
 			type = plain;
-		}else if(strncmp(filename, html, 10)==0){
+		}else if(strncmp(filename, html, strlen(html))==0){
 			type = html;
 		}else{
 			//didn't match any filetype
