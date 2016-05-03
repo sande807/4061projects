@@ -84,7 +84,6 @@ void * dispatch(void * arg){
 			currentslot=i;
 			pthread_cond_signal(&cv);//send a signal via the condition variable
 		}
-		printf("get request failed i guess\n");
 	}
 	//do we need to detach threads after we are done?
 	
@@ -100,7 +99,7 @@ void * worker(void * arg){
 	char *filepath = (char *) malloc(1024);
 	char *type;
 	char *gif = "/image/gif";
-	char *jpeg = "/image/jpeg";
+	char *jpeg = "/image/jpg";
 	char *plain = "/text/plain";
 	char *html = "/text/html";
 	char *buf;
@@ -145,14 +144,25 @@ void * worker(void * arg){
 		printf("filepath after: %s\n",filepath);
 		printf("path after: %s\n",path);
 		fp = fopen(filepath,"rb");
-		//fread(buf,1,str_size,fp);
+		printf("after open\n");
+		//figure out number of bytes
+		fseek(fp, 0L, SEEK_END);//find end of file
+		printf("after found end\n");
+		numbytes=ftell(fp);//get number of bytes
+		printf("numbytes: %d\n",numbytes);
+		fseek(fp, 0L, SEEK_SET);//go back to beginning of file
+		printf("after reset to beginning\n");
+		fread(buf,numbytes,1,fp);//read the file into the buffer
+		printf("after read\n");
 		
 		
 		//return the result to the user. if there is a failure return error
-		if (return_result(q[0].m_socket, type, buf, numbytes) != 0) {
+		if (return_result(q[i].m_socket, type, buf, numbytes) != 0) {
 			//set buf to the error message apparently
 			printf("return result failed\n");
-			return_error(q[0].m_socket, buf);
+			return_error(q[i].m_socket, buf);
+		}else{
+			printf("return result successful\n");
 		}
 		
 		slot[i] = 0;//free slot
