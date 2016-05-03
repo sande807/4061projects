@@ -80,11 +80,13 @@ void * dispatch(void * arg) {
 
 void * worker(void * arg){
 	int threadid = pthread_self();
+	int n;
 	int i = 0;
 	int numbytes = 0;
 	int num_requests_handled = 0;
 	char *tolog;
 	char *filename;
+	char *test;
 	char *filepath = (char *) malloc(1024);
 	char *type;
 	char *gif = "/image/gif";
@@ -106,28 +108,17 @@ void * worker(void * arg){
 		
 		//get the filename
 		filename = q[i].m_filename;
+		n = strlen(filename)-4;
+		test = &filename[n];
 		//figure out q[i] content type
-		if(strncmp(filename, gif, strlen(gif))==0){
+		if(strcmp(test, ".gif")==0){
 			type = gif;
-		}else if(strncmp(filename, jpg, strlen(jpg))==0){
+		}else if(strcmp(test, ".jpg")==0){
 			type = jpg;
-		}else if(strncmp(filename, plain, strlen(plain))==0){
-			type = plain;
-		}else if(strncmp(filename, html, strlen(html))==0){
+		}else if(strcmp(test, ".htm")==0){
 			type = html;
 		}else{
-			//didn't match any filetype
-			buf = "filetype does not match known files\n";
-			return_error(q[i].m_socket, buf);//return error
-			num_requests_handled++;//update the number of requests this thread has handled
-			//write to the log
-			log_f = fopen("web_server_log","a");
-			fprintf(log_f, "[%d][%d][%d][%s][%s]\n", threadid,num_requests_handled,q[i].m_socket,filename,buf);
-			fclose(log_f);
-			
-			slot[i] = 0;//free up slot
-			pthread_mutex_unlock(&lock) ;//unlock
-			continue;//go to next iteration of while loop. i.e. skip everything else
+			type = plain;
 		}
 		//open the file and put it in the buffer and then figure out the number of bytes and set numbytes to that
 		//use path
