@@ -28,25 +28,23 @@ pthread_cond_t cv;
 char *path;
 
 //Structure for queue.
-typedef struct request_queue
-{
+typedef struct request_queue {
         int   	m_socket;
         char   	m_szRequest[MAX_REQUEST_LENGTH];
         char	m_filename[1024];
 } request_queue_t;
 
-void * dispatch(void * arg){
+void * dispatch(void * arg) {
 	//the dispatcher thread will continuously run these operations
 	//it will attempt to get a connnection using the accept_connection function which will return a file descriptor
 	//if that is unsuccessful it will exit thread
 	//then it will try to get request, if that fails it will go to the next iteration of the loop
 	//if successful it will send the request to the worker thread
 	
-	printf("dispatcher begin\n");
-	while(1){
+	while(1) {
 		int i=0;
 		//find an open space in the queue
-		while(1){
+		while(1) {
 			//infinitely looks for an open slot
 			if(slot[i] == 0){//if the slot is 0 it's open
 				slot[i] = 1;//set this slot to 1 now cause we are going to use it
@@ -54,45 +52,33 @@ void * dispatch(void * arg){
 			}
 			i++;
 			//we did not find an open slot so update i
-			if(i==queuesz){//if i=queuesz we've gone too far
-				i=0;//
+			if(i==queuesz){
+				i=0;
 			}
 		}
-		printf("i = %d, continuing to accept connection\n", i);
 		//get file descriptor from accept_connection()
 		//if fd is negative then error, thread should exit
-		/*
-		 * WE MAY NEED SOME LOCKS AROUND THIS AREA. WORKS FOR ONE REQUEST THOUGH.
-		 * CAPS LOCK MEANS I'M SHOUTING
-		 * 
-		 */
-		if((q[i].m_socket = accept_connection()) < 0)
-		{
-			printf("FAILURE\n");
-			slot[i] = 0;//free up slot before exit;
+		if((q[i].m_socket = accept_connection()) < 0) {
+			//free up slot
+			slot[i] = 0;
 			pthread_exit(NULL);
 		}
-		printf("accepted connection, socket: %d, moving to get request\n", q[i].m_socket) ;
+		
 		//use file descriptor to get request. if return value == zero then success
 		//if success then it will continue to do work. if failure it will skip this and continue
 		//file is undefined before this point. if successful the filename will be stored in the file
-
-		if(get_request(q[i].m_socket, q[i].m_filename) == 0)
-		{
-			printf("request successful\n") ;
+		if(get_request(q[i].m_socket, q[i].m_filename) == 0) {
 			printf("%s\n",q[i].m_filename);
 			currentslot=i;
 			pthread_cond_signal(&cv);//send a signal via the condition variable
 		}
 	}
-	//do we need to detach threads after we are done?
 	
     return NULL;
 }
 
-void * worker(void * arg){
+void * worker(void * arg) {
 	
-	printf("worker begin\n" );
 	int i = 0;
 	int numbytes = 0;
 	char *filename;
@@ -118,7 +104,8 @@ void * worker(void * arg){
 		
 		filename = q[i].m_filename;
 		printf("filename: %s\n",filename);
-		//figure out q[i] content type
+		
+		//get content type
 		if(strncmp(filename, gif, strlen(gif))==0){
 			type = gif;
 		}else if(strncmp(filename, jpg, strlen(jpg))==0){
@@ -129,15 +116,14 @@ void * worker(void * arg){
 			type = html;
 		}else{
 			//didn't match any filetype
-			buf = "filetype does not match known files\n";
-			return_error(q[i].m_socket, buf);//return error
-			slot[i] = 0;//free up slot
-			continue;//go to next iteration of while loop. i.e. skip everything else
+			buf = "Filetype does not match known types\n";
+			return_error(q[i].m_socket, buf) ;
+			slot[i] = 0;
+			continue;
 		}
 		printf("file type: %s\n", type);
 		//open the file and put it in the buffer and then figure out the number of bytes and set numbytes to that
 		//use path
-		//filepath = path+"/"+type+filename
 		strcpy(filepath, "0");
 		strcpy(filepath, path);
 		strcat(filepath, filename);
@@ -156,16 +142,12 @@ void * worker(void * arg){
 		fread(buf,numbytes,1,fp);//read the file into the buffer
 		printf("after read\n");
 		
-		
 		//return the result to the user. if there is a failure return error
 		if (return_result(q[i].m_socket, type, buf, numbytes) != 0) {
 			//set buf to the error message apparently
 			printf("return result failed\n");
 			return_error(q[i].m_socket, buf);
-		}else{
-			printf("return result successful\n");
 		}
-		
 		free(buf);
 		slot[i] = 0;//free slot
 		pthread_mutex_unlock(&lock) ;//unlock
@@ -174,17 +156,15 @@ void * worker(void * arg){
 	return NULL;
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
         //Error check first.
-        if(argc != 6 && argc != 7)
-        {
+        if(argc != 6 && argc != 7) {
                 printf("usage: %s port path num_dispatcher num_workers queue_length [cache_size]\n", argv[0]);
                 return -1;
         }
 
-        printf("Call init() first and make a dispather and worker threads\n");
         int i;
+        
         //get port, then initialize
         int p = atoi(argv[1] );
         init(p) ;
@@ -197,7 +177,6 @@ int main(int argc, char **argv)
         num_dispatcher = atoi(argv[3]);
         num_workers = atoi(argv[4]);
         queuesz = atoi(argv[5]);
-        printf("port: %d, dis: %d, work: %d, q: %d\n", p, num_dispatcher,num_workers,queuesz);
  
         //make sure number of each threads doesn't exceed 100
         if (num_dispatcher > MAX_THREADS) {
@@ -213,7 +192,7 @@ int main(int argc, char **argv)
         
         //make an array to decide if a slot is empty or not
         int array[queuesz];
-        //int i;
+        
         for(i=0;i<queuesz;i++){
 			array[i]=0;
 		}
