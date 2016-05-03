@@ -19,6 +19,7 @@
 #define MAX_REQUEST_LENGTH 64
 
 //make these variables global so they can be used in the worker and dispatch threads
+FILE *log_f;
 int num_workers, num_dispatcher, queuesz;
 struct request_queue *q;
 int *slot;
@@ -59,11 +60,6 @@ void * dispatch(void * arg){
 		}
 		//get file descriptor from accept_connection()
 		//if fd is negative then error, thread should exit
-		/*
-		 * WE MAY NEED SOME LOCKS AROUND THIS AREA. WORKS FOR ONE REQUEST THOUGH.
-		 * CAPS LOCK MEANS I'M SHOUTING
-		 * 
-		 */
 		if((q[i].m_socket = accept_connection()) < 0)
 		{
 			slot[i] = 0;//free up slot before exit;
@@ -79,7 +75,6 @@ void * dispatch(void * arg){
 			pthread_cond_signal(&cv);//send a signal via the condition variable
 		}
 	}
-	//do we need to detach threads after we are done?
 	
     return NULL;
 }
@@ -89,6 +84,7 @@ void * worker(void * arg){
 	int i = 0;
 	int numbytes = 0;
 	int num_requests_handled = 0;
+	char *tolog;
 	char *filename;
 	char *filepath = (char *) malloc(1024);
 	char *type;
@@ -109,6 +105,7 @@ void * worker(void * arg){
 		//figure out the current slot
 		i=currentslot;
 		
+		//get the filename
 		filename = q[i].m_filename;
 		
 		//figure out q[i] content type
@@ -124,36 +121,53 @@ void * worker(void * arg){
 			//didn't match any filetype
 			buf = "filetype does not match known files\n";
 			return_error(q[i].m_socket, buf);//return error
+			num_requests_handled++;//update the number of requests this thread has handled
+			//write to the log
+			fprintf(log_f, "[%d][%d][%d][%s][%s]\n", threadid,num_requests_handled,q[i].m_socket,filename,buf);
+			printf("[%d][%d][%d][%s][%s]\n", threadid,num_requests_handled,q[i].m_socket,filename,buf);
+			
 			slot[i] = 0;//free up slot
 			pthread_mutex_unlock(&lock) ;//unlock
 			continue;//go to next iteration of while loop. i.e. skip everything else
 		}
-		//open the file and put it in the buffer and then figure out the number of bytes and set numbytes to that
-		//use path
-		//filepath = path+"/"+type+filename
+		
+		//determine filepath and open the file
 		strcpy(filepath, "0");
 		strcpy(filepath, path);
 		strcat(filepath, filename);
 		fp = fopen(filepath,"rb");
+		
 		//figure out number of bytes
 		fseek(fp, 0L, SEEK_END);//find end of file
 		numbytes=ftell(fp);//get number of bytes
 		fseek(fp, 0L, SEEK_SET);//go back to beginning of file
-		buf = (char *) malloc(numbytes);
+		buf = (char *) malloc(numbytes);//allocate space in the buffer
 		fread(buf,numbytes,1,fp);//read the file into the buffer
-		
 		
 		//return the result to the user. if there is a failure return error
 		if (return_result(q[i].m_socket, type, buf, numbytes) != 0) {
 			//set buf to the error message apparently
 			buf = "failure to return result";
+			num_requests_handled++;//update the number of requests this thread has handled
+			//write to the log
+			fprintf(log_f, "[%d][%d][%d][%s][%s]\n", threadid,num_requests_handled,q[i].m_socket,filename,buf);
+			printf("[%d][%d][%d][%s][%s]\n", threadid,num_requests_handled,q[i].m_socket,filename,buf);
+			
+			//return error
 			return_error(q[i].m_socket, buf);
+		}else{
+			//success
+			num_requests_handled++;//update the number of requests this thread has handled
+		
+			//write to the log
+			fprintf(log_f, "[%d][%d][%d][%s][%d]\n", threadid,num_requests_handled,q[i].m_socket,filename,numbytes);
+			printf("[%d][%d][%d][%s][%d]\n", threadid,num_requests_handled,q[i].m_socket,filename,numbytes);
 		}
 		
-		num_requests_handled++;
+		//free up stuff and unlock
 		free(buf);
 		slot[i] = 0;//free slot
-		pthread_mutex_unlock(&lock) ;//unlock
+		pthread_mutex_unlock(&lock) ;//unlock	
 	}	
 		
 	return NULL;
@@ -170,6 +184,7 @@ int main(int argc, char **argv)
 
         printf("Call init() first and make a dispather and worker threads\n");
         int i;
+        
         //get port, then initialize
         int p = atoi(argv[1] );
         init(p) ;
@@ -198,7 +213,6 @@ int main(int argc, char **argv)
         
         //make an array to decide if a slot is empty or not
         int array[queuesz];
-        //int i;
         for(i=0;i<queuesz;i++){
 			array[i]=0;
 		}
@@ -207,6 +221,9 @@ int main(int argc, char **argv)
 		//set up locks and condition variables
 		pthread_mutex_init(&lock, NULL);
 		pthread_cond_init (&cv, NULL);
+		
+		//open log for writing to
+		log_f = fopen("web_server_log.txt","w");
         
         //create an array of dispatcher and worker threads from those values
 		pthread_t d_threads[num_dispatcher];
